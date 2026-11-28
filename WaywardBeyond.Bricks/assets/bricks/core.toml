@@ -6,3 +6,7 @@ Place = ["metal_place"]
 Break = ["metal_break"]
 [Bricks.Textures]
 Default = ["core"]
+[Bricks.Statistics]
+"wb:power_kw" = 50.0
+[[Bricks.Entity.SlotGroups]]
+ID = "wb:fuel"

@@ -5,6 +5,7 @@ using Swordfish.ECS;
 using Swordfish.Graphics.Particles;
 using WaywardBeyond.Client.Components;
 using WaywardBeyond.Client.Voxels.Building;
+using WaywardBeyond.Data.Components;
 
 namespace WaywardBeyond.Client.Systems;
 
@@ -53,6 +54,12 @@ internal sealed class ClientCleanupSystem : IEntitySystem
         FreeGameAction game = new();
         store.Query<IdentifierComponent, FreeGameAction>(0f, ref game);
 
+        FreeMachineAction machines = new();
+        store.Query<MachineStateComponent, FreeMachineAction>(0f, ref machines);
+
+        FreeInventoryAction inventories = new();
+        store.Query<InventoryComponent, FreeInventoryAction>(0f, ref inventories);
+
         _logger.LogInformation("Cleaned up the client world on the ECS thread.");
     }
 
@@ -70,6 +77,22 @@ internal sealed class ClientCleanupSystem : IEntitySystem
                 VoxelEntityBuilder.FreeChunks(store, entity);
             }
 
+            store.Free(entity);
+        }
+    }
+
+    private struct FreeMachineAction : IForEach<MachineStateComponent>
+    {
+        public void Execute(float delta, DataStore store, int entity, in MachineStateComponent state)
+        {
+            store.Free(entity);
+        }
+    }
+
+    private struct FreeInventoryAction : IForEach<InventoryComponent>
+    {
+        public void Execute(float delta, DataStore store, int entity, in InventoryComponent inventory)
+        {
             store.Free(entity);
         }
     }

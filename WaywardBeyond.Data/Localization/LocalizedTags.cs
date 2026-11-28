@@ -13,6 +13,9 @@ public sealed class LocalizedTags
         Merge(tags);
     }
 
+    /// <summary>All tag keys present in this table.</summary>
+    public IReadOnlyCollection<string> Keys => Tags.Keys;
+
     /// <summary>Gets the values for a tag in first-occurrence order, or null when the tag has no entries.</summary>
     public IReadOnlyList<string>? GetValues(string tag)
     {

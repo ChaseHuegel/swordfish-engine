@@ -20,12 +20,23 @@ One subject: dirty-driven replication between server and client.
   `LastProcessedInput`. Entities can set `NetworkComponent.ExcludedRecipientEntity`
   to omit the entire entity (components, full sync, `RemovedComponents`, and
   `RemovedEntities`) from the client owning that entity uuid. When any collected
-  entry has a scoped `ReplicationAudience` (`OwnerOnly` or `OthersOnly`) or an
-  `ExcludedRecipientEntity`, the publisher filters per client against that
-  client's session entity and entity uuid without reading `DataStore` during
-  fan-out. When no collected entry has recipient scoping, all clients share the
-  serialized arrays without per-client filtering. The publisher skips a delta
-  snapshot that becomes empty after recipient filtering.
+  entry has a scoped `ReplicationAudience` (`OwnerOnly`, `OthersOnly`, or
+  `ViewersOnly`) or an `ExcludedRecipientEntity`, the publisher filters per
+  client against that client's session entity, entity uuid, and viewer
+  subscriptions without reading `DataStore` during fan-out. When no collected
+  entry has recipient scoping, all clients share the serialized arrays without
+  per-client filtering. The publisher skips a delta snapshot that becomes empty
+  after recipient filtering.
+- **Viewer-scoped subscriptions.** `SubscribeViewer` and `UnsubscribeViewer`
+  (`WaywardBeyond.Server/Systems/NetworkReplicationSystem.cs:188-266`) manage
+  explicit viewer subscriptions for non-owned entities such as server
+  brick-entities. Attaching a viewer queues an initial full snapshot of that
+  entity's matching `ServerOwned` components on the next publish. Detaching a
+  viewer or calling `DetachAllViewers` queues a targeted `RemovedEntities` entry
+  only for viewers that previously received the entity. `CancelStream` tears down
+  all viewer subscriptions when a client leaves, disconnects, or rejoins.
+  `ServerBrickEntitySystem` (`WaywardBeyond.Server/Systems/ServerBrickEntitySystem.cs:9`)
+  detaches viewers that move out of reach before `NetworkPublishSystem` runs.
 - **Despawns** are recorded via `RequestDespawn(entityUuid,
   excludedRecipientEntity)` before the entity is freed (`DataStore.Free` clears
   the uuid) and broadcast in `RemovedEntities`, omitting any excluded owner.

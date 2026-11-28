@@ -12,6 +12,7 @@ using WaywardBeyond.Client.Voxels.Building;
 using WaywardBeyond.Data.Components;
 using WaywardBeyond.Data.Networking;
 using WaywardBeyond.Gameplay;
+using WaywardBeyond.Gameplay.Components;
 using WaywardBeyond.Gameplay.Networking;
 using WaywardBeyond.Networking.Codecs;
 using WaywardBeyond.Networking.Registry;
@@ -182,9 +183,19 @@ internal sealed class ClientReconcileSystem(
                 continue;
             }
 
+            //  A brick entity that also has local client visuals (ChildComponent + BrickAnchorComponent)
+            //  stays alive until VoxelEntityBuilder reconciles the removed voxel; strip only server state.
+            if (store.TryGet(entity, out ChildComponent _) && store.TryGet(entity, out BrickAnchorComponent _))
+            {
+                store.Remove<InventoryComponent>(entity);
+                store.Remove<MachineStateComponent>(entity);
+                continue;
+            }
+
             if (store.TryGet(entity, out VoxelComponent _))
             {
-                VoxelEntityBuilder.FreeChunks(store, entity);
+                VoxelEntityBuilder.Destroy(store, entity);
+                continue;
             }
 
             //  Free captures every component removal; the engine releases their native resources.

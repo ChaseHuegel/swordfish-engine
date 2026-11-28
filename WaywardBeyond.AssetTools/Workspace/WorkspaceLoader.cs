@@ -983,6 +983,15 @@ public sealed class WorkspaceLoader
                 }
             }
         }
+
+        if (brick.Entity?.SlotGroups != null)
+        {
+            List<BrickSlotGroupDefinition> slotGroups = brick.Entity.Value.SlotGroups;
+            for (int i = 0; i < slotGroups.Count; i++)
+            {
+                AddRefIfPresent(refs, in asset, $"Entity.SlotGroups[{i}].ID", slotGroups[i].ID?.Trim(), "slot_group", isInformational: false);
+            }
+        }
     }
 
     private static void ExtractPaintReferences(in IndexedAsset asset, in PaintDefinition paint, List<InboundReference> refs)

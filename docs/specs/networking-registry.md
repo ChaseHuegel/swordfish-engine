@@ -12,8 +12,8 @@ it through constructor injection.
 - `Register<T>(Uuid, NetworkDirection, IPayloadCodec<T>, ReplicationAudience)`
   is the only registration path. The typed codec ties the registration to the
   component at compile time. The optional `audience` parameter declares which
-  clients receive a `ServerOwned` component (`All`, `OwnerOnly`, or
-  `OthersOnly`). The method returns `Result` with a contextual failure message
+  clients receive a `ServerOwned` component (`All`, `OwnerOnly`, `OthersOnly`,
+  or `ViewersOnly`). The method returns `Result` with a contextual failure message
   (duplicate type, duplicate uuid, `Uuid.Null`, or a scoped audience on a
   `ClientOwned` component).
 - `Freeze()` closes the registry to registration and caches the per-direction
@@ -83,14 +83,24 @@ component once and delivers it according to the audience:
   updates and removals.
 - `OthersOnly` — every connected client except the entity's owning client
   receives updates and removals.
+- `ViewersOnly` — only the entity's owning client (when it is a player session
+  entity) and explicitly subscribed viewer clients receive updates, initial
+  attach snapshots, removals, and targeted detach despawns. Non-viewers receive
+  nothing, and dirty updates with no owner and no viewers skip serialization.
 
-Only `ServerOwned` registrations accept `OwnerOnly` or `OthersOnly`.
+Only `ServerOwned` registrations accept `OwnerOnly`, `OthersOnly`, or
+`ViewersOnly`.
 `LaserBeamComponent` uses `OthersOnly`
-(`WaywardBeyond.Networking/NetworkingComposition.cs:34-39`) so the server omits
+(`WaywardBeyond.Networking/NetworkingComposition.cs:39-44`) so the server omits
 the shooter's own beam updates and removals while the shooter renders a locally
 predicted beam. `StatisticsComponent` uses `OwnerOnly`
-(`WaywardBeyond.Networking/NetworkingComposition.cs:42-47`). The server sends a
+(`WaywardBeyond.Networking/NetworkingComposition.cs:47-52`). The server sends a
 player's vitals, attributes, and buff timers only to that owning session.
+`InventoryComponent` (`WaywardBeyond.Networking/NetworkingComposition.cs:29-34`)
+and `MachineStateComponent` (`WaywardBeyond.Networking/NetworkingComposition.cs:53-58`)
+use `ViewersOnly`. Players receive their own `InventoryComponent`, and clients
+subscribed to a server brick-entity receive that brick-entity's
+`InventoryComponent` and `MachineStateComponent` while viewing it.
 
 Every failure in `TransformCodec` and `PhysicsCodec` carries a message that
 names the entity and the invalid field. The caller writes that message into its
@@ -108,7 +118,7 @@ Wired in `WaywardBeyond.Networking/NetworkingComposition.cs`.
 | `BodyViewComponent` | 10 | ServerOwned | `NsdComponentCodec<BodyViewComponent>` |
 | `IdentifierComponent` | 11 | ServerOwned | `IdentifierCodec` |
 | `EquipmentComponent` | 12 | ClientOwned | `NsdComponentCodec<EquipmentComponent>` |
-| `InventoryComponent` | 13 | ServerOwned | `InventoryCodec` |
+| `InventoryComponent` | 13 | ServerOwned | `InventoryCodec` (`ViewersOnly`) |
 | `GameModeComponent` | 14 | ServerOwned | `NsdComponentCodec<GameModeComponent>` |
 | `InteractionEvent` | 15 | ClientOwned | `NsdComponentCodec<InteractionEvent>` |
 | `InventoryEvent` | 16 | ClientOwned | `NsdComponentCodec<InventoryEvent>` |
@@ -116,6 +126,7 @@ Wired in `WaywardBeyond.Networking/NetworkingComposition.cs`.
 | `ParticleEmitterComponent` | 18 | ServerOwned | `ParticleEmitterCodec` |
 | `ParticleEmitterBindingComponent` | 19 | ServerOwned | `NsdComponentCodec<ParticleEmitterBindingComponent>` |
 | `StatisticsComponent` | 20 | ServerOwned | `NsdComponentCodec<StatisticsComponent>` (`OwnerOnly`) |
+| `MachineStateComponent` | 21 | ServerOwned | `NsdComponentCodec<MachineStateComponent>` (`ViewersOnly`) |
 
 `InputComponent` (`WaywardBeyond.Data/Nsd/components.nsd:5-19`) serializes movement, look totals, sequence bookkeeping, `DampenersDisabled` (field `8`, default `false` for dampeners enabled), held action buttons, and `PaintId`.
 
@@ -157,3 +168,6 @@ consumes items against its values. See [join](networking-join.md) and
 - `WaywardBeyond.Tests/StatisticsReplicationTests.cs` pins `OwnerOnly` audience
   filtering, full-sync and delta replication, and idle dirty suppression for
   `StatisticsComponent`.
+- `WaywardBeyond.Tests/BrickEntityTests.cs` pins `ViewersOnly` registration for
+  `InventoryComponent` and `MachineStateComponent`, initial attach snapshots,
+  live deltas, targeted detach despawns, and non-viewer isolation.

@@ -66,6 +66,8 @@ public sealed partial class AssetDocumentViewModel : ObservableObject
     private bool _buffRegenRatesModified;
     private bool _itemConsumableModified;
     private bool _itemConsumableModifiersModified;
+    private bool _brickEntityLightModified;
+    private bool _brickEntitySlotGroupsModified;
     private bool _statisticsModified;
     private bool _hasInitialViewModelTable;
     private bool _hasInitialWorldModelTable;
@@ -92,6 +94,9 @@ public sealed partial class AssetDocumentViewModel : ObservableObject
 
     [ObservableProperty]
     private bool _hasConsumable;
+
+    [ObservableProperty]
+    private bool _brickHasEntityLight;
 
     [ObservableProperty]
     private string? _syntaxErrorMessage;
@@ -281,6 +286,20 @@ public sealed partial class AssetDocumentViewModel : ObservableObject
             BrickTexRightField = AddField("TextureRight", "Right (+X)", "bare layer · vent", GetVal("TextureRight"), referenceKind: ReferenceKind.BrickFace);
             BrickSoundPlaceField = AddField("SoundPlace", "Place Sound", "sound tag · metal_place", GetVal("SoundPlace"), referenceKind: ReferenceKind.SoundTag);
             BrickSoundBreakField = AddField("SoundBreak", "Break Sound", "sound tag · metal_break", GetVal("SoundBreak"), referenceKind: ReferenceKind.SoundTag);
+
+            _brickHasEntityLight = seed.BrickHasEntityLight;
+            BrickEntityLightColorField = AddField("EntityLightColor", "Light Color", "6-digit hex · #FFFFFF", GetVal("EntityLightColor", "#FFFFFF"), isColor: true);
+            BrickEntityLightRadiusField = AddField("EntityLightRadius", "Radius", "optional · blank = voxel light", GetVal("EntityLightRadius"), isNumeric: true);
+            BrickEntityLightSizeField = AddField("EntityLightSize", "Emitter Size", "world units · 2.4", GetVal("EntityLightSize", "2.4"), isNumeric: true);
+            BrickEntityLightIntensityField = AddField("EntityLightIntensity", "Intensity", "linear multiplier · 1.0", GetVal("EntityLightIntensity", "1.0"), isNumeric: true);
+            BrickEntityLightCastShadowsField = AddField("EntityLightCastShadows", "Cast Shadows", string.Empty, GetVal("EntityLightCastShadows", "auto"), choices: ["auto", "true", "false"]);
+            BrickEntityLightOffsetField = AddField("EntityLightOffset", "Offset (X, Y, Z)", "X, Y, Z · 0, 0, 0", GetVal("EntityLightOffset", "0, 0, 0"));
+            BrickEntityLightTintFromPaintField = AddField("EntityLightTintFromPaint", "Tint From Paint", string.Empty, GetVal("EntityLightTintFromPaint", "false"), isBool: true);
+
+            foreach (var sg in seed.BrickEntitySlotGroups)
+            {
+                BrickEntitySlotGroups.Add(CreateBrickSlotGroupRow(sg.GroupId, sg.Capacity));
+            }
 
             foreach (var col in seed.Colliders)
             {
@@ -926,6 +945,56 @@ public sealed partial class AssetDocumentViewModel : ObservableObject
     ///     Brick default albedo hex color field.
     /// </summary>
     public StudioFieldViewModel? BrickColorField { get; }
+
+    /// <summary>
+    ///     Brick entity light sRGB hex color field (rendered with color picker).
+    /// </summary>
+    public StudioFieldViewModel? BrickEntityLightColorField { get; }
+
+    /// <summary>
+    ///     Brick entity light optional fixed radius field.
+    /// </summary>
+    public StudioFieldViewModel? BrickEntityLightRadiusField { get; }
+
+    /// <summary>
+    ///     Brick entity light emitter size field.
+    /// </summary>
+    public StudioFieldViewModel? BrickEntityLightSizeField { get; }
+
+    /// <summary>
+    ///     Brick entity light linear intensity field.
+    /// </summary>
+    public StudioFieldViewModel? BrickEntityLightIntensityField { get; }
+
+    /// <summary>
+    ///     Brick entity light shadow-casting mode field (auto, true, false).
+    /// </summary>
+    public StudioFieldViewModel? BrickEntityLightCastShadowsField { get; }
+
+    /// <summary>
+    ///     Brick entity light local offset field (X, Y, Z).
+    /// </summary>
+    public StudioFieldViewModel? BrickEntityLightOffsetField { get; }
+
+    /// <summary>
+    ///     Brick entity light paint-tinting boolean field.
+    /// </summary>
+    public StudioFieldViewModel? BrickEntityLightTintFromPaintField { get; }
+
+    /// <summary>
+    ///     Editable entity slot group rows for brick documents (<c>[[Bricks.Entity.SlotGroups]]</c>).
+    /// </summary>
+    public ObservableCollection<BrickSlotGroupRowViewModel> BrickEntitySlotGroups { get; } = [];
+
+    /// <summary>
+    ///     Whether the brick currently declares at least one entity slot group.
+    /// </summary>
+    public bool HasBrickEntitySlotGroups => BrickEntitySlotGroups.Count > 0;
+
+    /// <summary>
+    ///     Whether the brick currently declares no entity slot groups.
+    /// </summary>
+    public bool HasNoBrickEntitySlotGroups => BrickEntitySlotGroups.Count == 0;
 
     /// <summary>
     ///     Brick alpha rendering mode field.
@@ -1789,6 +1858,10 @@ public sealed partial class AssetDocumentViewModel : ObservableObject
             ItemConsumableModified = _itemConsumableModified,
             ItemConsumableModifiers = itemConsumableModifiers,
             ItemConsumableModifiersModified = _itemConsumableModifiersModified,
+            BrickHasEntityLight = BrickHasEntityLight,
+            BrickEntityLightModified = _brickEntityLightModified,
+            BrickEntitySlotGroups = BrickEntitySlotGroups.Select(static r => (r.GroupId, r.Capacity)).ToList(),
+            BrickEntitySlotGroupsModified = _brickEntitySlotGroupsModified,
         };
     }
 
@@ -1810,6 +1883,8 @@ public sealed partial class AssetDocumentViewModel : ObservableObject
         _buffRegenRatesModified = false;
         _itemConsumableModified = false;
         _itemConsumableModifiersModified = false;
+        _brickEntityLightModified = false;
+        _brickEntitySlotGroupsModified = false;
         _statisticsModified = false;
         _modifiedFieldKeys.Clear();
         _removedLocalizationKeys.Clear();
@@ -4192,6 +4267,227 @@ public sealed partial class AssetDocumentViewModel : ObservableObject
     }
 
     [RelayCommand]
+    private void AddPowerKwStatistic()
+    {
+        AddPresetStatistic(StatisticIds.POWER_KW, 10f);
+    }
+
+    [RelayCommand]
+    private void EnableBrickEntityLight()
+    {
+        if (IsReadOnly || Kind != AssetKind.Brick || BrickHasEntityLight)
+        {
+            return;
+        }
+
+        var wasDirty = IsDirty;
+        var wasModified = _brickEntityLightModified;
+        var recordedEpoch = _saveEpoch;
+
+        BrickHasEntityLight = true;
+        if (string.IsNullOrWhiteSpace(BrickEntityLightSizeField?.Value))
+        {
+            BrickEntityLightSizeField?.ApplyValueForReplay("2.4");
+        }
+
+        if (string.IsNullOrWhiteSpace(BrickEntityLightColorField?.Value))
+        {
+            BrickEntityLightColorField?.ApplyValueForReplay("#FFFFFF");
+        }
+
+        if (string.IsNullOrWhiteSpace(BrickEntityLightIntensityField?.Value))
+        {
+            BrickEntityLightIntensityField?.ApplyValueForReplay("1.0");
+        }
+
+        _brickEntityLightModified = true;
+
+        RecordUndo(
+            "Enable brick entity light",
+            coalesceKey: null,
+            undo: () => RestoreBrickEntityLightFlag(false, wasDirty, wasModified, recordedEpoch, isUndo: true),
+            redo: () => RestoreBrickEntityLightFlag(true, wasDirty, wasModified, recordedEpoch, isUndo: false));
+
+        MarkMutated();
+    }
+
+    [RelayCommand]
+    private void RemoveBrickEntityLight()
+    {
+        if (IsReadOnly || Kind != AssetKind.Brick || !BrickHasEntityLight)
+        {
+            return;
+        }
+
+        var wasDirty = IsDirty;
+        var wasModified = _brickEntityLightModified;
+        var recordedEpoch = _saveEpoch;
+
+        BrickHasEntityLight = false;
+        _brickEntityLightModified = true;
+
+        RecordUndo(
+            "Remove brick entity light",
+            coalesceKey: null,
+            undo: () => RestoreBrickEntityLightFlag(true, wasDirty, wasModified, recordedEpoch, isUndo: true),
+            redo: () => RestoreBrickEntityLightFlag(false, wasDirty, wasModified, recordedEpoch, isUndo: false));
+
+        MarkMutated();
+    }
+
+    private void RestoreBrickEntityLightFlag(
+        bool hasLight,
+        bool wasDirty,
+        bool wasModified,
+        int recordedEpoch,
+        bool isUndo)
+    {
+        BrickHasEntityLight = hasLight;
+        _brickEntityLightModified = isUndo ? (_saveEpoch == recordedEpoch ? wasModified : true) : true;
+        if (isUndo)
+        {
+            RestoreDirtyAfterUndo(wasDirty, recordedEpoch);
+        }
+        else
+        {
+            IsDirty = true;
+        }
+
+        RefreshTomlAndNotify();
+    }
+
+    [RelayCommand]
+    private void AddBrickEntitySlotGroup()
+    {
+        if (IsReadOnly || Kind != AssetKind.Brick)
+        {
+            return;
+        }
+
+        var wasDirty = IsDirty;
+        var wasModified = _brickEntitySlotGroupsModified;
+        var recordedEpoch = _saveEpoch;
+        var before = SnapshotBrickEntitySlotGroups();
+
+        BrickEntitySlotGroups.Add(CreateBrickSlotGroupRow("wb:cargo", string.Empty));
+        _brickEntitySlotGroupsModified = true;
+        var after = SnapshotBrickEntitySlotGroups();
+
+        RecordUndo(
+            "Add brick entity slot group",
+            coalesceKey: null,
+            undo: () => RestoreBrickEntitySlotGroupsSnapshot(before, wasDirty, wasModified, recordedEpoch, isUndo: true),
+            redo: () => RestoreBrickEntitySlotGroupsSnapshot(after, wasDirty, wasModified, recordedEpoch, isUndo: false));
+
+        OnPropertyChanged(nameof(HasBrickEntitySlotGroups));
+        OnPropertyChanged(nameof(HasNoBrickEntitySlotGroups));
+        MarkMutated();
+    }
+
+    [RelayCommand]
+    private void RemoveBrickEntitySlotGroup(BrickSlotGroupRowViewModel? row)
+    {
+        if (IsReadOnly || Kind != AssetKind.Brick || row == null || !BrickEntitySlotGroups.Contains(row))
+        {
+            return;
+        }
+
+        var wasDirty = IsDirty;
+        var wasModified = _brickEntitySlotGroupsModified;
+        var recordedEpoch = _saveEpoch;
+        var before = SnapshotBrickEntitySlotGroups();
+
+        BrickEntitySlotGroups.Remove(row);
+        _brickEntitySlotGroupsModified = true;
+        var after = SnapshotBrickEntitySlotGroups();
+
+        RecordUndo(
+            "Remove brick entity slot group",
+            coalesceKey: null,
+            undo: () => RestoreBrickEntitySlotGroupsSnapshot(before, wasDirty, wasModified, recordedEpoch, isUndo: true),
+            redo: () => RestoreBrickEntitySlotGroupsSnapshot(after, wasDirty, wasModified, recordedEpoch, isUndo: false));
+
+        OnPropertyChanged(nameof(HasBrickEntitySlotGroups));
+        OnPropertyChanged(nameof(HasNoBrickEntitySlotGroups));
+        MarkMutated();
+    }
+
+    private BrickSlotGroupRowViewModel CreateBrickSlotGroupRow(string groupId, string capacity)
+    {
+        return new BrickSlotGroupRowViewModel(
+            groupId,
+            capacity,
+            onChanged: () =>
+            {
+                _brickEntitySlotGroupsModified = true;
+                MarkMutated();
+            },
+            onPropertyTransition: (row, propName, oldVal, newVal) =>
+            {
+                var wasDirty = IsDirty;
+                var wasModified = _brickEntitySlotGroupsModified;
+                var recordedEpoch = _saveEpoch;
+                RecordUndo(
+                    $"Edit brick slot group {propName}",
+                    coalesceKey: $"brick-slot-group:{DocumentKey}:{row.GetHashCode()}:{propName}",
+                    undo: () =>
+                    {
+                        row.ApplyPropertyForReplay(propName, oldVal);
+                        _brickEntitySlotGroupsModified = _saveEpoch == recordedEpoch ? wasModified : true;
+                        RestoreDirtyAfterUndo(wasDirty, recordedEpoch);
+                        RefreshTomlAndNotify();
+                    },
+                    redo: () =>
+                    {
+                        row.ApplyPropertyForReplay(propName, newVal);
+                        _brickEntitySlotGroupsModified = true;
+                        IsDirty = true;
+                        RefreshTomlAndNotify();
+                    });
+            },
+            isReadOnly: IsReadOnly);
+    }
+
+    private List<(string GroupId, string Capacity)> SnapshotBrickEntitySlotGroups()
+    {
+        var list = new List<(string, string)>(BrickEntitySlotGroups.Count);
+        for (var i = 0; i < BrickEntitySlotGroups.Count; i++)
+        {
+            list.Add((BrickEntitySlotGroups[i].GroupId, BrickEntitySlotGroups[i].Capacity));
+        }
+
+        return list;
+    }
+
+    private void RestoreBrickEntitySlotGroupsSnapshot(
+        List<(string GroupId, string Capacity)> snapshot,
+        bool wasDirty,
+        bool wasModified,
+        int recordedEpoch,
+        bool isUndo)
+    {
+        BrickEntitySlotGroups.Clear();
+        for (var i = 0; i < snapshot.Count; i++)
+        {
+            BrickEntitySlotGroups.Add(CreateBrickSlotGroupRow(snapshot[i].GroupId, snapshot[i].Capacity));
+        }
+
+        _brickEntitySlotGroupsModified = isUndo ? (_saveEpoch == recordedEpoch ? wasModified : true) : true;
+        OnPropertyChanged(nameof(HasBrickEntitySlotGroups));
+        OnPropertyChanged(nameof(HasNoBrickEntitySlotGroups));
+        if (isUndo)
+        {
+            RestoreDirtyAfterUndo(wasDirty, recordedEpoch);
+        }
+        else
+        {
+            IsDirty = true;
+        }
+
+        RefreshTomlAndNotify();
+    }
+
+    [RelayCommand]
     private void AddMiningSpeedStatistic()
     {
         AddPresetStatistic(StatisticIds.MINING_SPEED, StatisticIds.DEFAULT_MINING_SPEED);
@@ -5979,6 +6275,48 @@ public sealed partial class AssetDocumentViewModel : ObservableObject
         }
 
         AppendStatisticsToml(sb, "Bricks.Statistics");
+
+        if (BrickHasEntityLight)
+        {
+            sb.AppendLine();
+            sb.AppendLine("[Bricks.Entity.Light]");
+            if (!string.IsNullOrWhiteSpace(BrickEntityLightRadiusField?.Value))
+            {
+                sb.AppendLine($"Radius        = {BrickEntityLightRadiusField.RawTokenText}");
+            }
+
+            sb.AppendLine($"Size          = {BrickEntityLightSizeField?.RawTokenText ?? "2.4"}");
+            sb.AppendLine($"Color         = {BrickEntityLightColorField?.RawTokenText ?? "\"#FFFFFF\""}");
+            sb.AppendLine($"Intensity     = {BrickEntityLightIntensityField?.RawTokenText ?? "1.0"}");
+            if (!string.IsNullOrWhiteSpace(BrickEntityLightCastShadowsField?.Value)
+                && !BrickEntityLightCastShadowsField.Value.Equals("auto", StringComparison.OrdinalIgnoreCase))
+            {
+                sb.AppendLine($"CastShadows   = {BrickEntityLightCastShadowsField.Value}");
+            }
+
+            if (!string.IsNullOrWhiteSpace(BrickEntityLightOffsetField?.Value)
+                && !BrickEntityLightOffsetField.Value.Trim().Equals("0, 0, 0", StringComparison.Ordinal))
+            {
+                sb.AppendLine($"Offset        = {{ {FormatVec3(BrickEntityLightOffsetField.Value)} }}");
+            }
+
+            if (string.Equals(BrickEntityLightTintFromPaintField?.Value, "true", StringComparison.OrdinalIgnoreCase))
+            {
+                sb.AppendLine("TintFromPaint = true");
+            }
+        }
+
+        for (var i = 0; i < BrickEntitySlotGroups.Count; i++)
+        {
+            var sg = BrickEntitySlotGroups[i];
+            sb.AppendLine();
+            sb.AppendLine("[[Bricks.Entity.SlotGroups]]");
+            sb.AppendLine($"ID = \"{sg.GroupId}\"");
+            if (!string.IsNullOrWhiteSpace(sg.Capacity))
+            {
+                sb.AppendLine($"Capacity = {sg.Capacity}");
+            }
+        }
     }
 
     private void AppendItemToml(StringBuilder sb)

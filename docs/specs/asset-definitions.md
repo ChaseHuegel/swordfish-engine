@@ -177,14 +177,18 @@ Each row is a `[[Bricks]]` table with an optional `[Bricks.Textures]` sub-table:
 | `Textures` | sub-table | `BrickTextures` |
 | `Sounds` | `[Bricks.Sounds]` map | sound tags per `BrickEventKind` (`Place`, `Break`) |
 | `Colliders` | `[[Bricks.Colliders]]` array | Optional `BrickColliderDefinition` list (`WaywardBeyond.Bricks/BrickColliderDefinition.cs`) |
-| `Statistics` | `[Bricks.Statistics]` map: string → float | `BrickDefinition.Statistics` (custom numeric statistics such as `"wb:hardness"`) |
+| `Statistics` | `[Bricks.Statistics]` map: string → float | `BrickDefinition.Statistics` (custom numeric statistics such as `"wb:hardness"` and `"wb:power_kw"`) |
+| `Entity` | `[Bricks.Entity]` sub-table | Optional `BrickEntityDefinition` (`WaywardBeyond.Bricks/BrickEntityDefinition.cs`) with `[Bricks.Entity.Light]` and `[[Bricks.Entity.SlotGroups]]` |
 
-Brick property and group membership (`brick.light`, `brick.entity`,
+Brick property and group membership (`brick.light`, `brick.airtight`,
+`brick.toggleable`, `brick.default_power_off`, `brick.default_open`,
 `brick.orientable`, `brick.paintable`, `brick.thruster`, `brick.buildable`,
-`brick.environment`, `brick.manufactured`) lives in the invariant tag list
-`WaywardBeyond.Bricks/assets/lang/tags/bricks.toml` (`BrickTags`). Brick TOMLs
-do not declare inline `Tags`. `BrickDatabase` resolves `LightSource`, `Entity`,
-`Paintable`, and `IsOrientable` once at load from `ILocalizedTagsDatabase.Invariant`.
+`brick.environment`, `brick.manufactured`, and `station.*`) lives in the
+invariant tag list `WaywardBeyond.Bricks/assets/lang/tags/bricks.toml`
+(`BrickTags`). Brick TOMLs do not declare inline `Tags`. `BrickDatabase`
+resolves `LightSource`, `Paintable`, `IsOrientable`, `Airtight`, `Toggleable`,
+`DefaultPowerEnabled`, `DefaultOpen`, and `StationTag` once at load from
+`ILocalizedTagsDatabase.Invariant`.
 
 Base-game brick ids are prefixed with the `wb` namespace. A mod uses its own
 namespace so no two content authors can collide by name. A brick's voxel id is
@@ -232,6 +236,37 @@ Example:
 ```toml
 [Bricks.Statistics]
 "wb:hardness" = 2.5
+```
+
+### Entity
+
+`BrickDefinition.Entity` (`WaywardBeyond.Bricks/BrickDefinition.cs:42`) is an optional `[Bricks.Entity]` sub-table (`BrickEntityDefinition`, `WaywardBeyond.Bricks/BrickEntityDefinition.cs:6`) that carries structured entity configuration for client and server brick-entity decorators. `BrickDatabase.ResolveEntity` (`WaywardBeyond.Bricks/BrickDatabase.cs:204`) validates the table into `Brick.Entity` (`BrickEntity`, `WaywardBeyond.Bricks/BrickEntity.cs:6`).
+
+| Sub-table | Type | Notes |
+|---|---|---|
+| `[Bricks.Entity.Light]` | `BrickLightDefinition` | optional point-light config (`Radius?`, `Size`, `Color`, `Intensity`, `CastShadows?`, `Offset`, `TintFromPaint`) consumed by `LightEntityDecorator` |
+| `[[Bricks.Entity.SlotGroups]]` | `BrickSlotGroupDefinition[]` | optional inventory slot group list (`ID` and optional `Capacity` override) consumed by `InventoryBrickEntityDecorator` |
+
+Archetype membership (`station.core`, `station.storage`, `station.console`, `brick.airtight`, `brick.toggleable`, `brick.default_power_off`, `brick.default_open`) lives in `tags/bricks.toml`, and numeric machine ratings such as `"wb:power_kw"` live in `[Bricks.Statistics]`. Client decorators (`IBrickEntityDecorator`) and server decorators (`IServerBrickEntityDecorator`) decide via `AppliesTo(Brick)` which bricks allocate client or server ECS entities, sharing one deterministic entity UUID (`BrickEntityId.Derive`) and `BrickAnchorComponent`.
+
+Slot group rows with empty ids, negative capacities, or duplicate ids log a warning and are skipped. Omitted `Capacity` falls back to `ISlotGroupSchemaDatabase` and canonical `SlotGroups` defaults.
+
+Examples (`WaywardBeyond.Bricks/assets/bricks/core.toml:9-12`, `thruster.toml:27-32`):
+
+```toml
+[Bricks.Statistics]
+"wb:power_kw" = 50.0
+[[Bricks.Entity.SlotGroups]]
+ID = "wb:fuel"
+```
+
+```toml
+[Bricks.Entity.Light]
+Radius      = 0.75
+Size        = 0.25
+Color       = "#F47E1B"
+Intensity   = 20.0
+CastShadows = false
 ```
 
 ### Textures
@@ -564,7 +599,7 @@ bits. See [seed-phrases](seed-phrases.md).
 
 - `WaywardBeyond.Items/{ItemDefinitions,ItemDefinition,ItemTags,ToolDefinition,ConsumableDefinition,ConsumableStatModifierDefinition,PlaceableDefinition,PlaceableType,ModelDefinition,ItemDatabase,ItemPlaceables}.cs`
 - `WaywardBeyond.Data/Blueprints/{IBundledBlueprintDatabase,BundledBlueprintDatabase,BlueprintDataParser}.cs`
-- `WaywardBeyond.Bricks/{BrickDefinitions,BrickDefinition,BrickTags,BrickTextures,BrickAlpha,BrickColliderDefinition,BrickColliderShape,BrickColliders}.cs`
+- `WaywardBeyond.Bricks/{BrickDefinitions,BrickDefinition,BrickTags,BrickTextures,BrickAlpha,BrickColliderDefinition,BrickColliderShape,BrickColliders,BrickEntityDefinition,BrickLightDefinition,BrickLight,BrickSlotGroupDefinition,BrickEntity,BrickSlotGroup}.cs`
 - `WaywardBeyond.Bricks/{Brick,Srgb}.cs`
 - `WaywardBeyond.Voxels/VoxelCollision.cs`
 - `WaywardBeyond.Data/Inventory/{ISlotGroupSchemaDatabase,SlotGroupSchemaDatabase,SlotGroupSchema,SlotGroupDefinitions,SlotGroupDefinition,SlotFilterDefinition,SlotGroups}.cs`
@@ -620,3 +655,4 @@ occurrence order, and the invariant merge into each language.
 `WaywardBeyond.Tests/BarDatabaseTests.cs` pins `bars/*.toml` `TomlParser<BarDefinitions>` parsing, defaults, `ColorTint` parsing, ordering, and validation failures.
 `WaywardBeyond.Tests/BuffDatabaseTests.cs` pins `buffs/*.toml` `TomlParser<BuffDefinitions>` parsing, stack policies, stat modifiers, data-driven regen rates, and validation failures.
 `WaywardBeyond.Tests/SurvivalSystemTests.cs` pins `[Items.Consumable]` parsing, one-shot statistic modifiers, shipped consumable assets, cooldown use, and buff grants.
+`WaywardBeyond.Tests/BrickEntityTests.cs` pins `[Bricks.Entity]`, `[Bricks.Entity.Light]`, `[[Bricks.Entity.SlotGroups]]`, archetype tag and statistic resolution, decorator extensibility, and unified client/server brick-entity identity.

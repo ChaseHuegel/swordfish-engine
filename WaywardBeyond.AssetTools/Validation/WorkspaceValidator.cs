@@ -962,6 +962,11 @@ public sealed class WorkspaceValidator
             ValidateBrickColliders(in asset, doc, brick.Colliders, findings);
         }
 
+        if (brick.Entity != null)
+        {
+            ValidateBrickEntity(workspace, in asset, doc, brick.Entity.Value, findings);
+        }
+
         ValidateBrickFaceList(workspace, in asset, doc, "Bricks.Textures", "Default", brick.Textures.Default, brick.Textures.Connected, findings);
         ValidateBrickFaceList(workspace, in asset, doc, "Bricks.Textures", "Top", brick.Textures.Top, brick.Textures.Connected, findings);
         ValidateBrickFaceList(workspace, in asset, doc, "Bricks.Textures", "Bottom", brick.Textures.Bottom, brick.Textures.Connected, findings);
@@ -975,6 +980,157 @@ public sealed class WorkspaceValidator
             foreach (KeyValuePair<BrickEventKind, string[]> kvp in brick.Sounds)
             {
                 ValidateBrickSoundTags(workspace, in asset, doc, kvp.Key.ToString(), kvp.Value, findings);
+            }
+        }
+    }
+
+    private static void ValidateBrickEntity(
+        WorkspaceIndex workspace,
+        in IndexedAsset asset,
+        TomlDocument? doc,
+        in BrickEntityDefinition entity,
+        List<ValidationFinding> findings)
+    {
+        if (entity.Light != null)
+        {
+            BrickLightDefinition light = entity.Light.Value;
+            if (!string.IsNullOrWhiteSpace(light.Color) && !IsStrictSixDigitHexRgb(light.Color))
+            {
+                TomlFieldSpan? colorField = FindEntryField(doc, asset.Provenance.TableIndex, "Color", "Bricks.Entity.Light");
+                (string? suggestedColor, bool isSafeColorFix, string? fixDesc) = TrySuggestNormalizedHexColor(light.Color);
+                AddFieldFinding(
+                    findings,
+                    "COLOR001",
+                    ValidationSeverity.Broken,
+                    in asset,
+                    colorField,
+                    "Entity.Light.Color",
+                    $"Invalid 6-digit hex RGB light color '{light.Color}'.",
+                    suggestedFixValue: suggestedColor,
+                    fixKind: suggestedColor != null ? ValidationFixKind.ReplaceValue : ValidationFixKind.None,
+                    isSafeBulkFix: isSafeColorFix,
+                    fixDescription: fixDesc);
+            }
+
+            if (light.Radius.HasValue && (!float.IsFinite(light.Radius.Value) || light.Radius.Value < 0f))
+            {
+                TomlFieldSpan? radiusField = FindEntryField(doc, asset.Provenance.TableIndex, "Radius", "Bricks.Entity.Light");
+                AddFieldFinding(
+                    findings,
+                    "BRICK001",
+                    ValidationSeverity.Broken,
+                    in asset,
+                    radiusField,
+                    "Entity.Light.Radius",
+                    $"Brick entity light Radius must be finite and non-negative, got {light.Radius.Value}.");
+            }
+
+            if (!float.IsFinite(light.Size) || light.Size <= 0f)
+            {
+                TomlFieldSpan? sizeField = FindEntryField(doc, asset.Provenance.TableIndex, "Size", "Bricks.Entity.Light");
+                AddFieldFinding(
+                    findings,
+                    "BRICK001",
+                    ValidationSeverity.Broken,
+                    in asset,
+                    sizeField,
+                    "Entity.Light.Size",
+                    $"Brick entity light Size must be finite and positive, got {light.Size}.");
+            }
+
+            if (!float.IsFinite(light.Intensity) || light.Intensity < 0f)
+            {
+                TomlFieldSpan? intensityField = FindEntryField(doc, asset.Provenance.TableIndex, "Intensity", "Bricks.Entity.Light");
+                AddFieldFinding(
+                    findings,
+                    "BRICK001",
+                    ValidationSeverity.Broken,
+                    in asset,
+                    intensityField,
+                    "Entity.Light.Intensity",
+                    $"Brick entity light Intensity must be finite and non-negative, got {light.Intensity}.");
+            }
+
+            if (!light.Offset.IsFinite)
+            {
+                TomlFieldSpan? offsetField = FindEntryField(doc, asset.Provenance.TableIndex, "Offset", "Bricks.Entity.Light");
+                AddFieldFinding(
+                    findings,
+                    "BRICK001",
+                    ValidationSeverity.Broken,
+                    in asset,
+                    offsetField,
+                    "Entity.Light.Offset",
+                    $"Brick entity light Offset must have finite components.");
+            }
+        }
+
+        if (entity.SlotGroups != null && entity.SlotGroups.Count > 0)
+        {
+            IReadOnlyList<IndexedAsset> knownSlotGroups = workspace.GetWinningAssetsByKind(AssetKind.SlotGroup);
+            HashSet<string>? knownSlotGroupIds = null;
+            if (knownSlotGroups.Count > 0)
+            {
+                knownSlotGroupIds = new HashSet<string>(knownSlotGroups.Count, StringComparer.Ordinal);
+                for (int k = 0; k < knownSlotGroups.Count; k++)
+                {
+                    knownSlotGroupIds.Add(knownSlotGroups[k].Id);
+                }
+            }
+
+            var seen = new HashSet<string>(StringComparer.Ordinal);
+            for (int i = 0; i < entity.SlotGroups.Count; i++)
+            {
+                BrickSlotGroupDefinition group = entity.SlotGroups[i];
+                string groupId = group.ID?.Trim() ?? string.Empty;
+                if (groupId.Length == 0)
+                {
+                    AddFieldFinding(
+                        findings,
+                        "BRICK002",
+                        ValidationSeverity.Broken,
+                        in asset,
+                        null,
+                        $"Entity.SlotGroups[{i}].ID",
+                        "Brick entity slot group ID cannot be empty.");
+                    continue;
+                }
+
+                if (!seen.Add(groupId))
+                {
+                    AddFieldFinding(
+                        findings,
+                        "BRICK002",
+                        ValidationSeverity.Broken,
+                        in asset,
+                        null,
+                        $"Entity.SlotGroups[{i}].ID",
+                        $"Duplicate brick entity slot group '{groupId}'.");
+                }
+
+                if (group.Capacity.HasValue && group.Capacity.Value < 0)
+                {
+                    AddFieldFinding(
+                        findings,
+                        "BRICK002",
+                        ValidationSeverity.Broken,
+                        in asset,
+                        null,
+                        $"Entity.SlotGroups[{i}].Capacity",
+                        $"Brick entity slot group '{groupId}' has negative capacity {group.Capacity.Value}.");
+                }
+
+                if (knownSlotGroupIds != null && !knownSlotGroupIds.Contains(groupId))
+                {
+                    AddFieldFinding(
+                        findings,
+                        "BRICK002",
+                        ValidationSeverity.Broken,
+                        in asset,
+                        null,
+                        $"Entity.SlotGroups[{i}].ID",
+                        $"Brick entity slot group '{groupId}' does not match any loaded SlotGroup definition.");
+                }
             }
         }
     }

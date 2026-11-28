@@ -8,10 +8,26 @@
     "wb:small_light",
 ]
 
-"brick.entity" = [
-    "wb:light",
-    "wb:small_light",
-    "wb:thruster",
+"brick.airtight" = [
+    "wb:core",
+    "wb:storage",
+]
+
+"brick.toggleable" = [
+    "wb:core",
+    "wb:display_console",
+]
+
+"station.core" = [
+    "wb:core",
+]
+
+"station.storage" = [
+    "wb:storage",
+]
+
+"station.console" = [
+    "wb:display_console",
 ]
 
 "brick.orientable" = [

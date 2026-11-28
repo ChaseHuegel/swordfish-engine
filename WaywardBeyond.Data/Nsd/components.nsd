@@ -154,3 +154,14 @@ message StatisticsComponent
 {
     WaywardBeyond.Data.Statistic[] Entries = 0;
 }
+
+message MachineStateComponent
+{
+    string  StationTag     = 0;
+    string? ActiveRecipeId = 1;
+    float   Progress       = 2;
+    float   Duration       = 3;
+    bool    PowerEnabled   = 4;
+    bool    HasPower       = 5;
+    byte    StatusFlags    = 6;
+}

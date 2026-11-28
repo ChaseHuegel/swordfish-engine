@@ -165,18 +165,24 @@ public class BrickDatabaseTests
         (BrickDatabase database, LocalizedTagsDatabase tags) = LoadWithTags();
         LocalizedTags invariant = tags.Invariant ?? throw new InvalidOperationException("No invariant tags loaded.");
 
-        //  Light and entity flags come from brick.light and brick.entity.
-        Assert.True(database.Get("wb:light").Value.LightSource);
-        Assert.Equal(15, database.Get("wb:light").Value.Brightness);
-        Assert.True(database.Get("wb:light").Value.Entity);
-        Assert.True(database.Get("wb:small_light").Value.LightSource);
-        Assert.True(database.Get("wb:small_light").Value.Entity);
-        Assert.False(database.Get("wb:panel").Value.LightSource);
-        Assert.False(database.Get("wb:panel").Value.Entity);
+        //  Light voxel flood-fill comes from brick.light; point-light entity config lives on [Bricks.Entity.Light].
+        Brick lightBrick = database.Get("wb:light").Value;
+        Brick smallLightBrick = database.Get("wb:small_light").Value;
+        Brick panelBrick = database.Get("wb:panel").Value;
+        Assert.True(lightBrick.LightSource);
+        Assert.Equal(15, lightBrick.Brightness);
+        Assert.NotNull(lightBrick.Entity?.Light);
+        Assert.True(lightBrick.Entity!.Light!.Value.TintFromPaint);
+        Assert.True(smallLightBrick.LightSource);
+        Assert.NotNull(smallLightBrick.Entity?.Light);
+        Assert.False(panelBrick.LightSource);
+        Assert.Null(panelBrick.Entity);
 
-        //  Thruster is an entity, orientable, and listed under brick.thruster.
+        //  Thruster declares [Bricks.Entity.Light], is orientable, and is listed under brick.thruster.
         Brick thruster = database.Get("wb:thruster").Value;
-        Assert.True(thruster.Entity);
+        Assert.NotNull(thruster.Entity?.Light);
+        Assert.Equal(0.75f, thruster.Entity!.Light!.Value.Radius);
+        Assert.Equal(20f, thruster.Entity.Light.Value.Intensity);
         Assert.False(thruster.LightSource);
         Assert.True(thruster.IsOrientable(BrickShape.Custom));
         Assert.True(invariant.Contains(BrickTags.THRUSTER, "wb:thruster"));
@@ -198,7 +204,8 @@ public class BrickDatabaseTests
         foreach (string tag in new[]
         {
             BrickTags.LIGHT,
-            BrickTags.ENTITY,
+            BrickTags.AIRTIGHT,
+            BrickTags.TOGGLEABLE,
             BrickTags.ORIENTABLE,
             BrickTags.PAINTABLE,
             BrickTags.THRUSTER,
@@ -217,10 +224,10 @@ public class BrickDatabaseTests
     }
 
     [Fact]
-    public void ThrusterEntityDecoratorResolvesThrustersFromInvariantTags()
+    public void LightEntityDecoratorAppliesConfiguredLightToThrusterAndSkipsPanel()
     {
-        (BrickDatabase database, LocalizedTagsDatabase tags) = LoadWithTags();
-        var decorator = new ThrusterEntityDecorator(database, tags);
+        (BrickDatabase database, _) = LoadWithTags();
+        var decorator = new LightEntityDecorator(database);
 
         var store = new DataStore();
         int parent = store.Alloc();
@@ -228,13 +235,22 @@ public class BrickDatabaseTests
         int panelEntity = store.Alloc();
         var voxelComponent = new VoxelComponent(new VoxelObject(16), new VoxelChunkRegistry());
 
-        var thrusterVoxel = new Voxel { ID = database.Id("wb:thruster") };
-        var panelVoxel = new Voxel { ID = database.Id("wb:panel") };
+        Brick thrusterBrick = database.Get("wb:thruster").Value;
+        Brick panelBrick = database.Get("wb:panel").Value;
+        var thrusterVoxel = new Voxel { ID = thrusterBrick.DataID };
+        var panelVoxel = new Voxel { ID = panelBrick.DataID };
 
-        decorator.Process(store, parent, thrusterEntity, voxelComponent, new VoxelInfo(0, 0, 0, thrusterVoxel));
-        decorator.Process(store, parent, panelEntity, voxelComponent, new VoxelInfo(1, 0, 0, panelVoxel));
+        Assert.True(decorator.AppliesTo(thrusterBrick));
+        Assert.False(decorator.AppliesTo(panelBrick));
 
-        Assert.True(store.TryGet(thrusterEntity, out LightComponent _));
+        decorator.Process(store, parent, thrusterEntity, voxelComponent, new VoxelInfo(0, 0, 0, thrusterVoxel), thrusterBrick);
+        decorator.Process(store, parent, panelEntity, voxelComponent, new VoxelInfo(1, 0, 0, panelVoxel), panelBrick);
+
+        Assert.True(store.TryGet(thrusterEntity, out LightComponent thrusterLight));
+        Assert.Equal(0.75f, thrusterLight.Radius);
+        Assert.Equal(0.25f, thrusterLight.Size);
+        Assert.Equal(20f, thrusterLight.Intensity);
+        Assert.False(thrusterLight.CastShadows);
         Assert.False(store.TryGet(panelEntity, out LightComponent _));
     }
 }

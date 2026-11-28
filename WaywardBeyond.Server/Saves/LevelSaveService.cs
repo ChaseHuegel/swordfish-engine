@@ -16,6 +16,7 @@ using WaywardBeyond.Data.Components;
 using WaywardBeyond.Data.Levels;
 using WaywardBeyond.Data.Statistics;
 using WaywardBeyond.Gameplay.Networking;
+using WaywardBeyond.Server.Systems;
 using WaywardBeyond.Voxels;
 
 namespace WaywardBeyond.Server.Saves;
@@ -35,6 +36,7 @@ public sealed class LevelSaveService : IDisposable
     private readonly IBrickRegistry _brickRegistry;
     private readonly IBrickDatabase _brickDatabase;
     private readonly IPaintRegistry? _paintRegistry;
+    private readonly ServerBrickEntityService? _brickEntities;
     private readonly Lock _saveLock = new();
     private readonly ConcurrentQueue<bool> _completions = new();
     private readonly Dictionary<ulong, PendingCharacterLocation> _pendingCharacterLocations = [];
@@ -60,13 +62,15 @@ public sealed class LevelSaveService : IDisposable
         IBrickRegistry brickRegistry,
         IBrickDatabase brickDatabase,
         GameplayConfig gameplayConfig,
-        IPaintRegistry? paintRegistry = null
+        IPaintRegistry? paintRegistry = null,
+        ServerBrickEntityService? brickEntities = null
     ) {
         _logger = logger;
         _levelCatalog = levelCatalog;
         _brickRegistry = brickRegistry;
         _brickDatabase = brickDatabase;
         _paintRegistry = paintRegistry;
+        _brickEntities = brickEntities;
         _gameplayConfig = gameplayConfig;
         LevelSpawn = _gameplayConfig.DefaultSpawnPosition;
     }
@@ -112,8 +116,28 @@ public sealed class LevelSaveService : IDisposable
         CurrentLevel = level;
         LevelSpawn = new Vector3(level.SpawnX, level.SpawnY, level.SpawnZ);
 
+        Dictionary<BrickEntityKey, BrickEntityData>? persistedBricks = null;
+        HashSet<BrickEntityKey>? matchedBrickKeys = null;
+        if (_brickEntities != null)
+        {
+            IReadOnlyList<BrickEntityData> savedBricks = levelStorage.GetBrickEntities();
+            if (savedBricks.Count > 0)
+            {
+                persistedBricks = new Dictionary<BrickEntityKey, BrickEntityData>(savedBricks.Count);
+                for (var i = 0; i < savedBricks.Count; i++)
+                {
+                    BrickEntityData brick = savedBricks[i];
+                    var key = new BrickEntityKey(brick.VoxelEntityUuid, brick.VoxelX, brick.VoxelY, brick.VoxelZ);
+                    persistedBricks[key] = brick;
+                }
+
+                matchedBrickKeys = [];
+            }
+        }
+
         //  Resolve each persisted structure into the in-memory local id space. The store has already
         //  deserialized and migrated every entity to the level's data version.
+        var allStructuresLoaded = true;
         foreach (VoxelEntityData entity in levelStorage.GetVoxelEntities(level.Version.DataVersion))
         {
             try
@@ -121,15 +145,58 @@ public sealed class LevelSaveService : IDisposable
                 Result<VoxelEntityData> decodeResult = VoxelCodec.Decode(in entity, _brickRegistry, _paintRegistry);
                 if (!decodeResult.Success)
                 {
+                    allStructuresLoaded = false;
                     _logger.LogWarning("Skipped voxel entity {uuid} while loading level \"{level}\": {message}", entity.Uuid, levelGuid, decodeResult.Message);
                     continue;
                 }
 
-                VoxelWorldEntityFactory.CreateAuthority(store, decodeResult.Value, _brickDatabase);
+                Entity spawned = VoxelWorldEntityFactory.CreateAuthority(store, decodeResult.Value, _brickDatabase);
+                if (_brickEntities != null
+                    && spawned.Ptr != Entity.Null
+                    && store.TryGet(spawned.Ptr, out VoxelWorldComponent voxelWorld))
+                {
+                    _brickEntities.RestoreStructure(
+                        store,
+                        Uuid.FromValue(decodeResult.Value.Uuid),
+                        voxelWorld.VoxelObject,
+                        persistedBricks,
+                        matchedBrickKeys);
+                }
             }
             catch (Exception ex)
             {
+                allStructuresLoaded = false;
                 _logger.LogError(ex, "Failed to build authority voxel entity {uuid}.", entity.Uuid);
+            }
+        }
+
+        if (allStructuresLoaded && persistedBricks != null && persistedBricks.Count > 0)
+        {
+            var orphaned = new List<BrickEntityKey>();
+            foreach (BrickEntityKey key in persistedBricks.Keys)
+            {
+                if (matchedBrickKeys == null || !matchedBrickKeys.Contains(key))
+                {
+                    orphaned.Add(key);
+                }
+            }
+
+            if (orphaned.Count > 0)
+            {
+                Result deleteResult = levelStorage.DeleteBrickEntities(orphaned);
+                if (!deleteResult.Success)
+                {
+                    _logger.LogWarning(
+                        deleteResult.Exception,
+                        "Failed to prune {count} orphaned brick-entity records while loading level \"{level}\": {message}",
+                        orphaned.Count, levelGuid, deleteResult.Message);
+                }
+                else
+                {
+                    _logger.LogInformation(
+                        "Pruned {count} orphaned brick-entity records while loading level \"{level}\".",
+                        orphaned.Count, levelGuid);
+                }
             }
         }
 
@@ -144,6 +211,8 @@ public sealed class LevelSaveService : IDisposable
     /// </summary>
     public void Unload(DataStore store)
     {
+        _brickEntities?.Clear();
+
         UnloadAction action = new();
         store.Query<NetworkComponent, UnloadAction>(0f, ref action);
 
@@ -469,7 +538,9 @@ public sealed class LevelSaveService : IDisposable
         };
         store.Query<OwnedCharacterComponent, TransformComponent, CaptureLocationAction>(0f, ref locationAction);
 
-        return new CapturedSave(storage, CurrentLevel.Value, entities.ToArray(), locations.ToArray());
+        BrickEntityData[] brickEntities = _brickEntities?.Capture(store) ?? [];
+
+        return new CapturedSave(storage, CurrentLevel.Value, entities.ToArray(), locations.ToArray(), brickEntities);
     }
 
     private void Persist(in CapturedSave save)
@@ -489,7 +560,7 @@ public sealed class LevelSaveService : IDisposable
         {
             //  The capture owns the storage it was taken from, so a queued save can never land in
             //  whichever level happens to be loaded when the worker runs.
-            Result result = save.Storage.Save(save.Level, save.Entities, save.Locations);
+            Result result = save.Storage.Save(save.Level, save.Entities, save.Locations, save.BrickEntities);
             return result.Success;
         }
         catch (Exception ex)
@@ -555,12 +626,19 @@ public sealed class LevelSaveService : IDisposable
         public readonly long Sequence = sequence;
     }
 
-    private readonly struct CapturedSave(in ILevelStorage storage, in Level level, in VoxelEntityData[] entities, in CharacterEntityData[] locations)
+    private readonly struct CapturedSave(
+        in ILevelStorage storage,
+        in Level level,
+        in VoxelEntityData[] entities,
+        in CharacterEntityData[] locations,
+        in BrickEntityData[] brickEntities
+    )
     {
         public readonly ILevelStorage Storage = storage;
         public readonly Level Level = level;
         public readonly VoxelEntityData[] Entities = entities;
         public readonly CharacterEntityData[] Locations = locations;
+        public readonly BrickEntityData[] BrickEntities = brickEntities;
     }
 
     private struct UnloadAction : IForEach<NetworkComponent>

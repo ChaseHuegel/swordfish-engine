@@ -25,7 +25,8 @@ public sealed class ServerInteractionSystem(
     ILogger<ServerInteractionSystem> logger,
     IInteractionHandlerRegistry handlerRegistry,
     Func<DataStore, IVoxelInteractionWorld> worldFactory,
-    SimulationStep simulationStep
+    SimulationStep simulationStep,
+    ServerBrickEntityService? brickEntities = null
 ) : IServerWorldSystem
 {
     private readonly Dictionary<Uuid, TimedSession> _timedSessions = [];
@@ -183,7 +184,7 @@ public sealed class ServerInteractionSystem(
 
         CancelMatchingSession(playerUuid, kind);
 
-        InteractionRunResult commitResult = handlerRegistry.Run(ref context, InteractionStage.Commit, InteractionStage.React);
+        InteractionRunResult commitResult = handlerRegistry.Run(ref context, InteractionStage.Commit, InteractionStage.Commit);
         if (commitResult.Decision is InteractionDecision.Consume or InteractionDecision.Cancel)
         {
             logger.LogDebug(
@@ -197,6 +198,17 @@ public sealed class ServerInteractionSystem(
             logger.LogDebug(
                 "Interaction {sequence} for player {player} resolved to nothing.",
                 interaction.SequenceNumber, player);
+            return;
+        }
+
+        NotifyBrickEntityInteraction(store, in context);
+
+        InteractionRunResult reactResult = handlerRegistry.Run(ref context, InteractionStage.React, InteractionStage.React);
+        if (reactResult.Decision is InteractionDecision.Consume or InteractionDecision.Cancel)
+        {
+            logger.LogDebug(
+                "Interaction {sequence} for player {player} ended in react stage with {decision}.",
+                interaction.SequenceNumber, player, reactResult.Decision);
         }
     }
 
@@ -261,12 +273,26 @@ public sealed class ServerInteractionSystem(
         if (TimedInteractionProgress.IsComplete(elapsed, requiredDuration))
         {
             _timedSessions.Remove(playerUuid);
-            InteractionRunResult commitResult = handlerRegistry.Run(ref context, InteractionStage.Commit, InteractionStage.React);
+            InteractionRunResult commitResult = handlerRegistry.Run(ref context, InteractionStage.Commit, InteractionStage.Commit);
             if (commitResult.Decision is InteractionDecision.Consume or InteractionDecision.Cancel)
             {
                 logger.LogDebug(
                     "Timed interaction {sequence} for player {player} ended with {decision}.",
                     session.Sequence, entity, commitResult.Decision);
+                return;
+            }
+
+            if (commitResult.Resolution.Action != InteractionAction.None)
+            {
+                NotifyBrickEntityInteraction(store, in context);
+            }
+
+            InteractionRunResult reactResult = handlerRegistry.Run(ref context, InteractionStage.React, InteractionStage.React);
+            if (reactResult.Decision is InteractionDecision.Consume or InteractionDecision.Cancel)
+            {
+                logger.LogDebug(
+                    "Timed interaction {sequence} for player {player} ended in react stage with {decision}.",
+                    session.Sequence, entity, reactResult.Decision);
             }
 
             return;
@@ -277,6 +303,24 @@ public sealed class ServerInteractionSystem(
         session.RequiredInput = context.Hold.RequiredInput;
         session.CancelOnEquipmentChange = context.Hold.CancelOnEquipmentChange;
         _timedSessions[playerUuid] = session;
+    }
+
+    private void NotifyBrickEntityInteraction(DataStore store, in InteractionContext context)
+    {
+        if (brickEntities == null)
+        {
+            return;
+        }
+
+        InteractionResolution resolution = context.Resolution;
+        if (resolution.Action == InteractionAction.Place)
+        {
+            brickEntities.OnBrickPlaced(store, store.GetUuid(resolution.Entity), resolution.Coordinate, resolution.Voxel.ID);
+        }
+        else if (resolution.Action == InteractionAction.Break)
+        {
+            brickEntities.OnBrickBroken(store, store.GetUuid(resolution.Entity), resolution.Coordinate, context.Player, context.GameMode);
+        }
     }
 
     private bool ShouldCancelOnRelease(Uuid playerUuid, InteractionKind kind)

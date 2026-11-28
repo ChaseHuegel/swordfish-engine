@@ -12,3 +12,5 @@ Front   = ["storage_front"]
 Back    = ["storage_back"]
 Left    = ["storage_side"]
 Right   = ["storage_side"]
+[[Bricks.Entity.SlotGroups]]
+ID = "wb:cargo"

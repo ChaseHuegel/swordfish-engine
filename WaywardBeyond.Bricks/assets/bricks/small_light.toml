@@ -7,3 +7,8 @@ Place = ["metal_place"]
 Break = ["metal_break"]
 [Bricks.Textures]
 Default   = ["small_light"]
+[Bricks.Entity.Light]
+Size          = 2.4
+Color         = "#FFFFFF"
+Intensity     = 0.051
+TintFromPaint = true

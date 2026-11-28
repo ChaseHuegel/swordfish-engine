@@ -204,4 +204,14 @@ public sealed class StudioAssetSeed
     ///     Regeneration rate rows for buff documents.
     /// </summary>
     public List<(string StatId, string PerSecond)> BuffRegenRates { get; init; } = [];
+
+    /// <summary>
+    ///     Whether a brick document declares a <c>[Bricks.Entity.Light]</c> section.
+    /// </summary>
+    public bool BrickHasEntityLight { get; init; }
+
+    /// <summary>
+    ///     Entity slot group rows declared under <c>[[Bricks.Entity.SlotGroups]]</c>.
+    /// </summary>
+    public List<(string GroupId, string Capacity)> BrickEntitySlotGroups { get; init; } = [];
 }

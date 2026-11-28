@@ -12,3 +12,5 @@ Bottom  = ["panel.0"]
 Back    = ["vent"]
 Left    = ["greeble1"]
 Right   = ["greeble1"]
+[Bricks.Statistics]
+"wb:power_kw" = -1.0

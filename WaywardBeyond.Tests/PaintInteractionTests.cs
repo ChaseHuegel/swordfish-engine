@@ -293,10 +293,17 @@ public class PaintInteractionTests
     [Fact]
     public void LightEntityDecoratorMixesPaintedFaceColorsForLightBricksOnly()
     {
+        var paintableLight = new BrickLight(Radius: null, Size: 2.4f, Color: Vector3.One, Intensity: 0.051f, CastShadows: null, Offset: Vector3.Zero, TintFromPaint: true);
+        var thrusterColor = new Vector3(244f / 255f, 126f / 255f, 27f / 255f);
+        var thrusterLight = new BrickLight(Radius: 0.75f, Size: 0.25f, Color: thrusterColor, Intensity: 20f, CastShadows: false, Offset: Vector3.Zero, TintFromPaint: false);
+
         var bricks = new StubBrickDatabase();
-        bricks.Add(1, new Brick("wb:light", BrickAlpha.Opaque, false, null, BrickShape.Any, default, lightSource: true, entity: true, paintable: true));
-        bricks.Add(2, new Brick("wb:small_light", BrickAlpha.Opaque, false, null, BrickShape.Any, default, lightSource: true, entity: true, paintable: true));
-        bricks.Add(3, new Brick("wb:thruster", BrickAlpha.Opaque, false, "thruster.obj", BrickShape.Custom, default, entity: true, paintable: true));
+        var lightBrick = new Brick("wb:light", BrickAlpha.Opaque, false, null, BrickShape.Any, default, lightSource: true, paintable: true, entity: new BrickEntity(paintableLight));
+        var smallLightBrick = new Brick("wb:small_light", BrickAlpha.Opaque, false, null, BrickShape.Any, default, lightSource: true, paintable: true, entity: new BrickEntity(paintableLight));
+        var thrusterBrick = new Brick("wb:thruster", BrickAlpha.Opaque, false, "thruster.obj", BrickShape.Custom, default, paintable: true, entity: new BrickEntity(thrusterLight));
+        bricks.Add(1, lightBrick);
+        bricks.Add(2, smallLightBrick);
+        bricks.Add(3, thrusterBrick);
 
         var paints = new StubPaintDatabase();
         paints.Add(1, Paint.CreateTexture("wb:caution", "caution", BrickAlpha.Opaque, false, ["caution"]));
@@ -317,51 +324,52 @@ public class PaintInteractionTests
 
         var decorator = new LightEntityDecorator(bricks, paints);
 
-        //  No face overrides -> default light color.
-        decorator.Process(store, parent, lightEntity, voxelComponent, lightInfo);
+        //  No face overrides -> pure white hue/tint color with authored intensity.
+        decorator.Process(store, parent, lightEntity, voxelComponent, lightInfo, lightBrick);
         Assert.True(store.TryGet(lightEntity, out LightComponent defaultLight));
-        Assert.Equal(LightEntityDecorator.DefaultColor, defaultLight.Color);
+        Assert.Equal(Vector3.One, defaultLight.Color);
+        Assert.Equal(0.051f, defaultLight.Intensity);
 
         //  Texture-only override does not alter light color.
         voxels.SetFaceTexture(1, 2, 3, BrickFaceMask.Front, 1);
-        decorator.Process(store, parent, lightEntity, voxelComponent, lightInfo);
+        decorator.Process(store, parent, lightEntity, voxelComponent, lightInfo, lightBrick);
         Assert.True(store.TryGet(lightEntity, out LightComponent textureOnlyLight));
-        Assert.Equal(LightEntityDecorator.DefaultColor, textureOnlyLight.Color);
+        Assert.Equal(Vector3.One, textureOnlyLight.Color);
 
-        //  Single painted face mixes default color with just that face's color.
+        //  Single painted face mixes base color with just that face's color.
         voxels.SetFaceColor(1, 2, 3, BrickFaceMask.Front, 2);
-        decorator.Process(store, parent, lightEntity, voxelComponent, lightInfo);
+        decorator.Process(store, parent, lightEntity, voxelComponent, lightInfo, lightBrick);
         Assert.True(store.TryGet(lightEntity, out LightComponent redLight));
-        Assert.Equal(LightEntityDecorator.DefaultColor * new Vector3(1f, 0f, 0f), redLight.Color);
+        Assert.Equal(new Vector3(1f, 0f, 0f), redLight.Color);
 
-        //  Multiple painted faces mix default color with the average of all painted faces.
+        //  Multiple painted faces mix base color with the average of all painted faces.
         voxels.SetFaceColor(1, 2, 3, BrickFaceMask.Back, 3);
-        decorator.Process(store, parent, lightEntity, voxelComponent, lightInfo);
+        decorator.Process(store, parent, lightEntity, voxelComponent, lightInfo, lightBrick);
         Assert.True(store.TryGet(lightEntity, out LightComponent purpleLight));
-        Assert.Equal(LightEntityDecorator.DefaultColor * new Vector3(0.5f, 0f, 0.5f), purpleLight.Color);
+        Assert.Equal(new Vector3(0.5f, 0f, 0.5f), purpleLight.Color);
 
         //  Clearing face colors restores the default light color.
         voxels.SetFaceColor(1, 2, 3, BrickFaceMask.All, 0);
-        decorator.Process(store, parent, lightEntity, voxelComponent, lightInfo);
+        decorator.Process(store, parent, lightEntity, voxelComponent, lightInfo, lightBrick);
         Assert.True(store.TryGet(lightEntity, out LightComponent restoredLight));
-        Assert.Equal(LightEntityDecorator.DefaultColor, restoredLight.Color);
+        Assert.Equal(Vector3.One, restoredLight.Color);
 
         //  Small light also mixes its painted face color.
         var smallLightVoxel = new Voxel(2, new ShapeLight(BrickShape.Block, 15), 0);
         voxels.Set(2, 2, 3, smallLightVoxel);
         voxels.SetFaceColor(2, 2, 3, BrickFaceMask.Top, 3);
-        decorator.Process(store, parent, lightEntity, voxelComponent, new VoxelInfo(2, 2, 3, smallLightVoxel));
+        decorator.Process(store, parent, lightEntity, voxelComponent, new VoxelInfo(2, 2, 3, smallLightVoxel), smallLightBrick);
         Assert.True(store.TryGet(lightEntity, out LightComponent smallBlueLight));
-        Assert.Equal(LightEntityDecorator.DefaultColor * new Vector3(0f, 0f, 1f), smallBlueLight.Color);
+        Assert.Equal(new Vector3(0f, 0f, 1f), smallBlueLight.Color);
 
-        //  Thruster is not a light brick and keeps its thruster decorator color without face-color mixing.
-        var thrusterVoxel = new Voxel(3, new ShapeLight(BrickShape.Custom, 15), 0);
+        //  Thruster has TintFromPaint = false and keeps its configured color without face-color mixing.
+        var thrusterVoxel = new Voxel(3, new ShapeLight(BrickShape.Custom, 0), 0);
         voxels.Set(3, 2, 3, thrusterVoxel);
         voxels.SetFaceColor(3, 2, 3, BrickFaceMask.All, 3);
         var thrusterInfo = new VoxelInfo(3, 2, 3, thrusterVoxel);
-        decorator.Process(store, parent, thrusterEntity, voxelComponent, thrusterInfo);
+        decorator.Process(store, parent, thrusterEntity, voxelComponent, thrusterInfo, thrusterBrick);
         Assert.True(store.TryGet(thrusterEntity, out LightComponent thrusterBaseLight));
-        Assert.Equal(LightEntityDecorator.DefaultColor, thrusterBaseLight.Color);
+        Assert.Equal(thrusterColor, thrusterBaseLight.Color);
 
         //  MarkFaceModified flags the chunk for entity decorator reconciliation without geometry/collider rebuild.
         registry.MarkFaceModified(1, 2, 3, voxels.ChunkSize);
@@ -372,8 +380,10 @@ public class PaintInteractionTests
     [Fact]
     public void LightBrickColorDrivesUnpaintedLightsAndPaintReplacesIt()
     {
+        var paintableLight = new BrickLight(Radius: null, Size: 2.4f, Color: Vector3.One, Intensity: 0.051f, CastShadows: null, Offset: Vector3.Zero, TintFromPaint: true);
         var bricks = new StubBrickDatabase();
-        bricks.Add(1, new Brick("wb:amber_light", BrickAlpha.Opaque, false, null, BrickShape.Any, default, lightSource: true, entity: true, paintable: true, color: new Vector3(1f, 0.5f, 0f)));
+        var amberBrick = new Brick("wb:amber_light", BrickAlpha.Opaque, false, null, BrickShape.Any, default, lightSource: true, paintable: true, color: new Vector3(1f, 0.5f, 0f), entity: new BrickEntity(paintableLight));
+        bricks.Add(1, amberBrick);
 
         var paints = new StubPaintDatabase();
         paints.Add(1, Paint.CreateColor("wb:red", "red", new Vector3(1f, 0f, 0f)));
@@ -392,15 +402,15 @@ public class PaintInteractionTests
         var decorator = new LightEntityDecorator(bricks, paints);
 
         //  Unpainted light brick emits its authored color.
-        decorator.Process(store, parent, entity, voxelComponent, voxelInfo);
+        decorator.Process(store, parent, entity, voxelComponent, voxelInfo, amberBrick);
         Assert.True(store.TryGet(entity, out LightComponent defaultLight));
-        Assert.Equal(LightEntityDecorator.DefaultColor * new Vector3(1f, 0.5f, 0f), defaultLight.Color);
+        Assert.Equal(new Vector3(1f, 0.5f, 0f), defaultLight.Color);
 
         //  A painted face replaces the authored color.
         voxels.SetFaceColor(1, 2, 3, BrickFaceMask.Front, 1);
-        decorator.Process(store, parent, entity, voxelComponent, voxelInfo);
+        decorator.Process(store, parent, entity, voxelComponent, voxelInfo, amberBrick);
         Assert.True(store.TryGet(entity, out LightComponent paintedLight));
-        Assert.Equal(LightEntityDecorator.DefaultColor * new Vector3(1f, 0f, 0f), paintedLight.Color);
+        Assert.Equal(new Vector3(1f, 0f, 0f), paintedLight.Color);
     }
 
     [Fact]

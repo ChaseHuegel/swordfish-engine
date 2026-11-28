@@ -82,6 +82,9 @@ public static class ServerComposition
         container.Register<LevelSaveService>(setup: Setup.With(allowDisposableTransient: true));
         container.Register<ServerJoinQueue>();
         container.Register<NetworkReplicationSystem>();
+        container.Register<IServerBrickEntityDecorator, InventoryBrickEntityDecorator>(Reuse.Singleton, ifAlreadyRegistered: IfAlreadyRegistered.AppendNewImplementation);
+        container.Register<IServerBrickEntityDecorator, MachineBrickEntityDecorator>(Reuse.Singleton, ifAlreadyRegistered: IfAlreadyRegistered.AppendNewImplementation);
+        container.Register<ServerBrickEntityService>();
         container.Register<ServerParticleService>();
         container.RegisterDelegate<IServerParticleService>(context => context.Resolve<ServerParticleService>());
         //  The world physics bundle is created directly (it owns the engine's Jolt system) and exposed
@@ -120,7 +123,8 @@ public static class ServerComposition
                 Arg.Of<ILogger<ServerInteractionSystem>>(),
                 Arg.Of<IInteractionHandlerRegistry>(),
                 Arg.Of<Func<DataStore, IVoxelInteractionWorld>>(),
-                Arg.Of<SimulationStep>()
+                Arg.Of<SimulationStep>(),
+                Arg.Of<ServerBrickEntityService>()
             ))
         );
         container.Register(made: Made.Of(() => CreateInteractionSystem(Arg.Of<ServerInteractionSystem>())));
@@ -128,6 +132,7 @@ public static class ServerComposition
         RegisterServerSystem<ServerPaintSprayerSystem>(container);
         RegisterServerSystem<ServerRegionSystem>(container);
         RegisterServerSystem<ServerChatSystem>(container);
+        RegisterServerSystem<ServerBrickEntitySystem>(container);
         RegisterServerSystem<ServerParticleFlushSystem>(container);
         RegisterServerSystem<NetworkPublishSystem>(container);
 
@@ -176,6 +181,9 @@ public static class ServerComposition
         container.Resolve<IRecipeDatabase>(IfUnresolved.ReturnDefault);
         container.Resolve<ISkillDatabase>();
         container.Resolve<ISlotGroupSchemaDatabase>();
+        foreach (IServerBrickEntityDecorator _ in container.ResolveMany<IServerBrickEntityDecorator>())
+        {
+        }
         if (container.IsRegistered<VirtualFileSystem>() && container.IsRegistered<IFileParseService>())
         {
             container.Resolve<ILocalizedTagsDatabase>(IfUnresolved.ReturnDefault);

@@ -104,3 +104,19 @@ message CharacterEntityData
     
     Statistic[]? Statistics = 12;
 }
+
+message BrickEntityData
+{
+    ulong VoxelEntityUuid  = 0;
+    int   VoxelX           = 1;
+    int   VoxelY           = 2;
+    int   VoxelZ           = 3;
+    string BrickId         = 4;
+    string StationTag      = 5;
+    string? ActiveRecipeId = 6;
+    float Progress         = 7;
+    float Duration         = 8;
+    bool  PowerEnabled     = 9;
+    byte  StatusFlags      = 10;
+    KeyedSlotEntry[]? Inventory = 11;
+}

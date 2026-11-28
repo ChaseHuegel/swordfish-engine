@@ -413,8 +413,7 @@ public class Injector : IDryIocInjector
         container.RegisterDelegate<DataStore>(context => context.Resolve<IECSContext>().World.DataStore, Reuse.Singleton);
 
         container.Register<VoxelEntityBuilder>(Reuse.Transient);
-        container.Register<IVoxelEntityDecorator, LightEntityDecorator>(Reuse.Transient);
-        container.Register<IVoxelEntityDecorator, ThrusterEntityDecorator>(Reuse.Transient);
+        container.Register<IBrickEntityDecorator, LightEntityDecorator>(Reuse.Transient);
 
         container.RegisterDelegate(
             context => new VoxelMaterials(

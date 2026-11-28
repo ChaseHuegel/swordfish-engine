@@ -10,35 +10,87 @@ using WaywardBeyond.Voxels;
 
 namespace WaywardBeyond.Client.Voxels.Building;
 
-internal sealed class LightEntityDecorator(IBrickDatabase brickDatabase, IPaintDatabase? paintDatabase = null) : IVoxelEntityDecorator
+internal sealed class LightEntityDecorator(IBrickDatabase brickDatabase, IPaintDatabase? paintDatabase = null) : IBrickEntityDecorator
 {
-    internal static readonly Vector3 DefaultColor = new(0.25f);
+    /// <inheritdoc/>
+    public bool AppliesTo(Brick brick) => brick.Entity?.Light != null;
 
-    public void Process(in DataStore store, in int parent, in int entity, in VoxelComponent voxelComponent, in VoxelInfo voxelInfo)
+    /// <inheritdoc/>
+    public void OnRemove(in DataStore store, in int entity)
     {
-        ShapeLight shapeLight = voxelInfo.Voxel.ShapeLight;
-        if (shapeLight.LightLevel <= 0 || !IsExposed(voxelComponent.VoxelObject, in voxelInfo))
+        store.Remove<LightComponent>(entity);
+    }
+
+    /// <inheritdoc/>
+    public void Process(in DataStore store, in int parent, in int entity, in VoxelComponent voxelComponent, in VoxelInfo voxelInfo, Brick brick)
+    {
+        if (brick.Entity?.Light is not BrickLight lightConfig)
         {
             store.Remove<LightComponent>(entity);
             return;
         }
 
-        bool castShadows = shapeLight.LightLevel >= 14;
-        Vector3 color = ResolveLightColor(voxelComponent.VoxelObject, in voxelInfo);
-        var light = new LightComponent(radius: shapeLight.LightLevel, color: color, size: 2.4f, castShadows: castShadows);
+        float radius;
+        bool castShadows;
+        if (lightConfig.Radius.HasValue)
+        {
+            if (lightConfig.Radius.Value <= 0f)
+            {
+                store.Remove<LightComponent>(entity);
+                return;
+            }
+
+            radius = lightConfig.Radius.Value;
+            castShadows = lightConfig.CastShadows ?? false;
+        }
+        else
+        {
+            ShapeLight shapeLight = voxelInfo.Voxel.ShapeLight;
+            if (shapeLight.LightLevel <= 0 || !IsExposed(voxelComponent.VoxelObject, in voxelInfo))
+            {
+                store.Remove<LightComponent>(entity);
+                return;
+            }
+
+            radius = shapeLight.LightLevel;
+            castShadows = lightConfig.CastShadows ?? (shapeLight.LightLevel >= 14);
+        }
+
+        Vector3 color = ResolveLightColor(voxelComponent.VoxelObject, in voxelInfo, brick, in lightConfig);
+        if (store.TryGet(entity, out ChildComponent child))
+        {
+            Vector3 localPosition = new(voxelInfo.X, voxelInfo.Y, voxelInfo.Z);
+            if (lightConfig.Offset != Vector3.Zero)
+            {
+                Quaternion voxelOrientation = voxelInfo.Voxel.GetOrientation().ToQuaternion();
+                localPosition += Vector3.Transform(lightConfig.Offset, voxelOrientation);
+            }
+
+            if (child.LocalPosition != localPosition)
+            {
+                child.LocalPosition = localPosition;
+                store.AddOrUpdate(entity, child);
+            }
+        }
+
+        var light = new LightComponent(
+            radius: radius,
+            color: color,
+            size: lightConfig.Size,
+            castShadows: castShadows,
+            intensity: lightConfig.Intensity);
         store.AddOrUpdate(entity, light);
     }
 
-    internal Vector3 ResolveLightColor(VoxelObject voxelObject, in VoxelInfo voxelInfo)
+    internal Vector3 ResolveLightColor(VoxelObject voxelObject, in VoxelInfo voxelInfo, Brick brick, in BrickLight lightConfig)
     {
-        Result<Brick> brickResult = brickDatabase.Get(voxelInfo.Voxel.ID);
-        if (!brickResult.Success || !brickResult.Value.LightSource)
+        if (!lightConfig.TintFromPaint)
         {
-            return DefaultColor;
+            return lightConfig.Color;
         }
 
         //  An unpainted light brick emits its authored color, a painted one emits the paint color.
-        Vector3 defaultColor = DefaultColor * brickResult.Value.Color;
+        Vector3 defaultColor = lightConfig.Color * brick.Color;
         if (paintDatabase == null)
         {
             return defaultColor;
@@ -71,7 +123,7 @@ internal sealed class LightEntityDecorator(IBrickDatabase brickDatabase, IPaintD
         }
 
         Vector3 mixedPaintColor = colorSum / paintedFaceCount;
-        return DefaultColor * mixedPaintColor;
+        return lightConfig.Color * mixedPaintColor;
     }
 
     private bool IsExposed(VoxelObject voxelObject, in VoxelInfo voxelInfo)

@@ -37,4 +37,7 @@ public struct BrickDefinition()
 
     /// <summary>Optional custom numeric statistics declared on the brick, keyed by statistic id.</summary>
     public Dictionary<string, float>? Statistics;
+
+    /// <summary>Optional brick-entity metadata declared under <c>[Bricks.Entity]</c>.</summary>
+    public BrickEntityDefinition? Entity;
 }

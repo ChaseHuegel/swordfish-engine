@@ -287,6 +287,7 @@ public class ClientRegionReconcileTests
                 NullLogger<VoxelEntityBuilder>.Instance,
                 materials,
                 objectBuilder,
+                _container.Resolve<IBrickDatabase>(),
                 [],
                 new VoxelSettings());
 
