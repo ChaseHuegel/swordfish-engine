@@ -9,6 +9,9 @@ internal enum KeybindingScope
     /// <summary>Active during world gameplay regardless of equipped item, blocked while modal overlays are open.</summary>
     World,
 
+    /// <summary>Active during world gameplay except while holding a Blueprint Projector or blueprint item.</summary>
+    WorldInteraction,
+
     /// <summary>Active during world gameplay only while holding a placeable brick.</summary>
     BrickPlacement,
 

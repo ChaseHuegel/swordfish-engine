@@ -103,6 +103,11 @@ internal sealed class ClientReplicationSystem : IEntitySystem
             {
                 ops.Outbound.Clear();
             }
+
+            if (store.TryGet(entity, out PendingStationActionComponent stationActions))
+            {
+                stationActions.Outbound?.Clear();
+            }
         }
     }
 
@@ -112,9 +117,8 @@ internal sealed class ClientReplicationSystem : IEntitySystem
 
         public void Execute(float delta, DataStore store, int entity, in PlayerComponent player)
         {
-            //  Buffered interaction edges and inventory ops are drained as their own snapshots before the
-            //  dirty-scan, so a player who staged edges or moves this frame has them emitted even though
-            //  the single component slots are no longer the transmission unit.
+            //  Buffered interaction edges, inventory ops, and station actions are drained as their own
+            //  snapshots before the dirty-scan so rapid clicks between sends survive.
             if (store.TryGet(entity, out PendingInteractionComponent pending))
             {
                 DrainInteractions(store, entity, pending);
@@ -125,9 +129,16 @@ internal sealed class ClientReplicationSystem : IEntitySystem
                 DrainInventoryOps(store, entity, pendingOps);
             }
 
+            if (store.TryGet(entity, out PendingStationActionComponent pendingStationActions))
+            {
+                DrainStationActions(store, entity, pendingStationActions);
+            }
+
             foreach (NetworkComponentInfo info in Owner._clientOwnedComponents)
             {
-                if (info.Type == typeof(InteractionEvent) || info.Type == typeof(InventoryEvent))
+                if (info.Type == typeof(InteractionEvent)
+                    || info.Type == typeof(InventoryEvent)
+                    || info.Type == typeof(StationActionEvent))
                 {
                     continue;
                 }
@@ -213,6 +224,42 @@ internal sealed class ClientReplicationSystem : IEntitySystem
             }
 
             //  The ops ride this tick's snapshot; the buffer is cleared after the send succeeds.
+            Owner._stagedEntities.Add(entity);
+        }
+
+        private void DrainStationActions(DataStore store, int entity, in PendingStationActionComponent pending)
+        {
+            Result<NetworkComponentInfo> lookup = Owner._registry.GetInfo<StationActionEvent>();
+            if (!lookup.Success || lookup.Value.Codec is not IPayloadCodec<StationActionEvent> codec)
+            {
+                return;
+            }
+
+            NetworkComponentInfo info = lookup.Value;
+
+            StageRing<StagedStationAction> ring = pending.Outbound;
+            if (ring == null || ring.Count == 0)
+            {
+                return;
+            }
+
+            ulong entityUuid = store.GetUuid(entity).ToValue();
+            for (var i = 0; i < ring.Count; i++)
+            {
+                StagedStationAction action = ring[i];
+                byte[] payload = codec.Serialize(new StationActionEvent
+                {
+                    Entity = entityUuid,
+                    SequenceNumber = action.SequenceNumber,
+                    Action = action.Op,
+                });
+                if (payload.Length > 0)
+                {
+                    Owner._pending.Add(new ComponentSnapshot(entityUuid, info.Uuid.ToValue(), payload));
+                }
+            }
+
+            //  The station actions ride this tick's snapshot; the buffer is cleared after the send succeeds.
             Owner._stagedEntities.Add(entity);
         }
     }

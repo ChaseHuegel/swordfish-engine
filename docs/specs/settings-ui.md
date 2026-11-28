@@ -187,15 +187,20 @@ page. Capturing a mouse button suppresses UI clicks for two frames so binding
 `KeybindingsSettingsCategory.UpdateConflicts` validates the draft across all
 active scopes (`KeybindingScope.cs:4`) and reserved fixed bindings on every
 frame. World shortcuts (`Movement`, general `Interaction`, `Open chat`, and
-`Open library`), modal inventory actions (`Move / stack`,
+`Open library`), world-interaction shortcuts (`Interaction/Activate` on `F`,
+`WorldInteraction` scope), modal inventory actions (`Move / stack`,
 `Split / distribute`, and `Quick move`), and `Send chat` (`Chat` scope) live in
-separate scopes so default bindings (`LMB`, `RMB`, `Enter`) do not
-false-conflict. Equipped-item sub-scopes (`BrickPlacement` for `Change shape`
+separate scopes so default bindings (`LMB`, `RMB`, `Enter`, `F`) do not
+false-conflict. `WorldInteraction` overlaps `Global`, `World`, `BrickPlacement`,
+`PaintSprayer`, and `Drill`, and stays isolated from `BlueprintTool`,
+`Inventory`, and `Chat` because `Interaction/Activate` is suppressed while
+holding a Blueprint Projector or blueprint item. Equipped-item sub-scopes
+(`BrickPlacement` for `Change shape`
 and `Change orientation`, `PaintSprayer` for `Select paint color`, `Drill` for
 `Select paint texture`, and `BlueprintTool` for `Blueprint tool actions` and
 Blueprint Projector shortcuts) overlap `Global`, `World`, and themselves, and
 stay isolated from each other and from modal `Inventory` and `Chat` scopes so
-default `R` and `T` bindings do not false-conflict. Global shortcuts (including
+default `R`, `T`, and `F` bindings do not false-conflict. Global shortcuts (including
 `Inventory`, `Slot 1` through `Slot 9`, `General`, and `Developer`) overlap
 every scope. Two conflicting entries in overlapping scopes highlight in danger
 red unless both share the same `SharedBindingGroup`, such as the `ToolRadial`

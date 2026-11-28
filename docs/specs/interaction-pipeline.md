@@ -20,7 +20,7 @@ Select → Resolve → Validate → Commit → React
 | `Select` | Determine the content the interaction operates with | `ItemPlaceableSelector` maps the held item to the brick it places |
 | `Resolve` | Derive the base outcome from the client's target hint | `PaintHintResolver` (High) resolves paint hints, `HintResolver` (Normal) runs `InteractionResolver` |
 | `Validate` | Adjust or reject before any authority change | `BreakToolValidator` rejects a break made without a removal tool |
-| `Commit` | Perform the authority change | `VoxelFaceWriteCommitter` (Normal) applies face overrides, `VoxelWriteCommitter` (Low) writes bricks, rebuilds the collider, and broadcasts |
+| `Commit` | Perform the authority change | `VoxelFaceWriteCommitter` (Normal) applies face overrides, `VoxelWriteCommitter` (Low) writes bricks, rebuilds the collider, and broadcasts, `StationActivateCommitter` (Low) opens station brick-entities |
 | `React` | Apply the consequences | `BreakLootReactor`, `PlaceConsumeReactor`, `ConsumeItemInteractionHandler`, `SkillXpReactor` |
 
 The game and its mods register the same kind of handler. There is no privileged path:
@@ -128,14 +128,68 @@ Timed interactions compose through the pipeline rather than living hardcoded ins
   the shared `IStatResolver`. Both `ServerInteractionSystem` and the client interaction services
   cache their `IVoxelInteractionWorld` per `DataStore` to avoid per-tick allocations during holds.
 
+## Activate and station actions
+
+World activation uses `InteractionKind.Activate` (`5` in `WaywardBeyond.Data/Nsd/components.nsd:107`).
+The client binds `Interaction/Activate` to `Key.F` in `GameShortcuts.CreateActivate`
+(`WaywardBeyond.Client/Shortcuts/GameShortcuts.cs:124`) under `KeybindingScope.WorldInteraction`.
+`PlayerInteractionService.AttemptActivateInteraction`
+(`WaywardBeyond.Client/Systems/PlayerInteractionService.cs:499`) gates activation on
+`!InteractionState.IsInteractionBlocked()` and suppresses it while the player holds a Blueprint
+Projector or blueprint placeable item. It raycasts within `CharacterDefaults.DEFAULT_REACH`, stages
+an `InteractionEvent` with `InteractionKind.Activate` and a `BrickInteraction` hint, and applies no
+local prediction.
+
+On the server, `InteractionResolver` (`WaywardBeyond.Gameplay/Interactions/InteractionResolver.cs:75`)
+resolves `InteractionKind.Activate` against a reachable occupied cell to `InteractionAction.Activate`.
+`StationActivateCommitter` (`WaywardBeyond.Server/Interactions/StationActivateCommitter.cs:14`) runs
+at `Commit` with `InteractionPriority.Low` and `Filter = new(Kind: InteractionKind.Activate)`.
+Higher-priority handlers for doors or modded interactables run first and claim the activation by
+returning `InteractionDecision.Handled`.
+
+`ServerStationService` (`WaywardBeyond.Server/Systems/ServerStationService.cs:21`) implements
+`IStationSession` (`WaywardBeyond.Gameplay/Stations/IStationSession.cs:9`), exposed on
+`InteractionContext.Stations` and `StationActionContext.Stations`. Opening a brick-entity resolves
+its `StationUiKind` (`None`, `ContextualTab`, or `Terminal`) through `StationTags.ResolveUiKind`
+(`WaywardBeyond.Gameplay/Stations/StationTags.cs:43`), attaches the player as a viewer through
+`ServerBrickEntityService`, and writes `ActiveStationComponent` (`OwnerOnly`) on the player mirror.
+`ServerBrickEntitySystem` (`WaywardBeyond.Server/Systems/ServerBrickEntitySystem.cs:10`) calls
+`ServerStationService.ReconcileActiveStations` before `DetachOutOfReachViewers`. The server clears
+`ActiveStationComponent` and detaches the viewer when the player moves out of reach, dies,
+disconnects, sends `CloseStation`, or when the brick-entity is destroyed.
+
+Server-authoritative station commands ride `StationActionEvent` and `StationActionOp`
+(`WaywardBeyond.Data/Nsd/components.nsd:193-207`) through a sequence-deduped
+`StageRing<StagedStationAction>` buffer on `NetworkComponent`. `ServerStationActionSystem`
+(`WaywardBeyond.Server/Systems/ServerStationActionSystem.cs:18`) runs after `ServerSurvivalSystem`
+and before `ServerInteractionSystem`. It validates wire bounds via
+`StationActionOp.IsWithinWireBounds` (`WaywardBeyond.Data/Components/StationActionOp.cs:15`), drains
+staged commands in ascending sequence order, and dispatches each command through
+`IStationActionHandlerRegistry` (`WaywardBeyond.Gameplay/Stations/StationActionHandlerRegistry.cs:8`).
+Built-in handlers cover `CloseStation` (`CloseStationActionHandler.cs:8`) and `TogglePower`
+(`TogglePowerStationActionHandler.cs:14`). Modules and mods register additional
+`IStationActionHandler` implementations in DI for crafting, remote nodes, respawn, and `Custom`
+`ActionId` commands.
+
+On the client, `ClientStationSystem` (`WaywardBeyond.Client/Systems/ClientStationSystem.cs:11`)
+stages outbound UI commands from `ClientStationState`
+(`WaywardBeyond.Client/Systems/ClientStationState.cs:13`) onto `PendingStationActionComponent` with
+zero local prediction and mirrors replicated `ActiveStationComponent` state back to UI layers.
+`Inventory` subscribes to `ClientStationState.Changed`, opens the `[Tab]` overlay automatically for
+`StationUiKind.ContextualTab`, closes it when the server unbinds the station, and enqueues
+`CloseStation` when the player closes the overlay manually.
+
 ## Source of truth
 
 - `WaywardBeyond.Gameplay/Interactions/{InteractionStage,InteractionPriority,InteractionDecision,InteractionRunResult}.cs`
 - `WaywardBeyond.Gameplay/Interactions/{InteractionContext,IInteractionHandler,IInteractionHandlerRegistry,InteractionHandlerRegistry}.cs`
 - `WaywardBeyond.Gameplay/Interactions/{InteractionInput,InteractionInputExtensions,InteractionHold,TimedInteractionKey,TimedInteractionProgress,HintResolver}.cs`
+- `WaywardBeyond.Gameplay/Stations/{StationTags,IStationSession,StationActionDecision,StationActionResult,StationActionFilter,StationActionContext,IStationActionHandler,IStationActionHandlerRegistry,StationActionHandlerRegistry}.cs`
 - `WaywardBeyond.Client/Interactions/{IClientTimedInteraction,ClientTimedInteractionContext,ClientTimedTarget,ClientTimedStageEvent,ClientTimedInteractionController,AdventureBreakTimedInteraction}.cs`
-- `WaywardBeyond.Client/Systems/{InteractionState,PlayerInteractionService}.cs`
-- `WaywardBeyond.Server/Interactions/` — default `Select`, `Validate` (`BreakToolValidator`, `AdventureBreakHoldValidator`), `Commit`, and `React` handlers (`BreakLootReactor`, `PlaceConsumeReactor`, `ConsumeItemInteractionHandler`, `SkillXpReactor`)
-- `WaywardBeyond.Server/Systems/ServerInteractionSystem.cs` — generic interaction pump and timed session tracker
+- `WaywardBeyond.Client/Systems/{InteractionState,PlayerInteractionService,ClientStationState,ClientStationSystem}.cs`
+- `WaywardBeyond.Server/Interactions/` — default `Select`, `Validate` (`BreakToolValidator`, `AdventureBreakHoldValidator`), `Commit` (`VoxelFaceWriteCommitter`, `VoxelWriteCommitter`, `StationActivateCommitter`), and `React` handlers (`BreakLootReactor`, `PlaceConsumeReactor`, `ConsumeItemInteractionHandler`, `SkillXpReactor`)
+- `WaywardBeyond.Server/Stations/{CloseStationActionHandler,TogglePowerStationActionHandler}.cs`
+- `WaywardBeyond.Server/Systems/{ServerInteractionSystem,ServerStationService,ServerStationActionSystem,ServerBrickEntitySystem}.cs`
 - `WaywardBeyond.Server/ServerComposition.cs` — default handler and stat modifier registration
-- `WaywardBeyond.Tests/TimedBrickBreakingTests.cs` — unit and integration coverage
+- `WaywardBeyond.Tests/TimedBrickBreakingTests.cs` — timed break unit and integration coverage
+- `WaywardBeyond.Tests/ActivateAndStationActionTests.cs` — activate pipeline, station lifecycle, auto-close, sequence dedupe, and client state coverage

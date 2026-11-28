@@ -544,6 +544,30 @@ public class KeybindingSettingsInteractionTests
         Assert.True(paintColor.HasConflict);
         Assert.True(paintTexture.HasConflict);
         Assert.True(blueprintRadial.HasConflict);
+        moveForward.SetValue(moveForward.DefaultBinding);
+
+        //  Activate (WorldInteraction, default F) does not conflict with Blueprint Mirror horizontal (BlueprintTool, default F),
+        //  but conflicts with World and non-blueprint tool sub-scopes when rebound to the same key.
+        KeybindingEntry activate = FindEntry(category, GameShortcuts.ACTIVATE);
+        KeybindingEntry blueprintMirrorHorizontal = FindEntry(category, GameShortcuts.BLUEPRINT_MIRROR_HORIZONTAL);
+        Assert.False(KeybindingsSettingsCategory.UpdateConflicts(category, fixedBindings));
+        Assert.False(activate.HasConflict);
+        Assert.False(blueprintMirrorHorizontal.HasConflict);
+
+        moveForward.SetValue(new ShortcutBinding(Key.F));
+        Assert.True(KeybindingsSettingsCategory.UpdateConflicts(category, fixedBindings));
+        Assert.True(moveForward.HasConflict);
+        Assert.True(activate.HasConflict);
+        Assert.True(blueprintMirrorHorizontal.HasConflict);
+        moveForward.SetValue(moveForward.DefaultBinding);
+
+        activate.SetValue(new ShortcutBinding(Key.R));
+        Assert.True(KeybindingsSettingsCategory.UpdateConflicts(category, fixedBindings));
+        Assert.True(activate.HasConflict);
+        Assert.True(changeShape.HasConflict);
+        Assert.True(paintColor.HasConflict);
+        Assert.True(paintTexture.HasConflict);
+        Assert.False(blueprintRadial.HasConflict);
     }
 
     [Fact]
@@ -591,6 +615,7 @@ public class KeybindingSettingsInteractionTests
         Assert.Equal("ui.settings.keybind.blueprintMirrorVertical", FindEntry(category, GameShortcuts.BLUEPRINT_MIRROR_VERTICAL).LabelKey);
         Assert.Equal("ui.settings.keybind.blueprintOverwriteEmpty", FindEntry(category, GameShortcuts.BLUEPRINT_OVERWRITE_EMPTY).LabelKey);
         Assert.Equal("ui.settings.keybind.toggleInertialDampeners", FindEntry(category, GameShortcuts.TOGGLE_DAMPENERS).LabelKey);
+        Assert.Equal("ui.settings.keybind.activate", FindEntry(category, GameShortcuts.ACTIVATE).LabelKey);
     }
 
     private static KeybindingEntry FindEntry(SettingsCategory category, string shortcutId)
@@ -621,6 +646,7 @@ public class KeybindingSettingsInteractionTests
 
         shortcuts.RegisterShortcut(GameShortcuts.CreatePrimaryAction());
         shortcuts.RegisterShortcut(GameShortcuts.CreateSecondaryAction());
+        shortcuts.RegisterShortcut(GameShortcuts.CreateActivate());
         shortcuts.RegisterShortcut(GameShortcuts.CreatePickBrick());
         shortcuts.RegisterShortcut(new Shortcut
         {

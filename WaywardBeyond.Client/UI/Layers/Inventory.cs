@@ -65,11 +65,14 @@ internal sealed class Inventory : IUILayer
     private readonly IInputService _inputService;
     private readonly ILocalization _localization;
     private readonly DebugSettings _debugSettings;
+    private readonly ClientStationState? _stationState;
     private readonly InventoryView _view;
     private readonly string[] _slotLabels = new string[SLOTS_PER_ROW];
+    private readonly Lock _openLock = new();
     private int _slotLabelsDirty = 1;
 
-    private bool _open;
+    private volatile bool _open;
+    private bool _openedForStation;
     private SlotId _selectedSlot;
     private InteractionState.InteractionBlocker? _interactionBlocker;
     private int _moveStackPressed;
@@ -99,7 +102,8 @@ internal sealed class Inventory : IUILayer
         in InteractionState interactionState,
         in IInputService inputService,
         in ILocalization localization,
-        in DebugSettings debugSettings
+        in DebugSettings debugSettings,
+        ClientStationState? stationState = null
     )
     {
         _shortcutService = shortcutService;
@@ -113,6 +117,7 @@ internal sealed class Inventory : IUILayer
         _inputService = inputService;
         _localization = localization;
         _debugSettings = debugSettings;
+        _stationState = stationState;
         _view = new InventoryView(localization);
 
         var toggleShortcut = new Shortcut
@@ -185,6 +190,11 @@ internal sealed class Inventory : IUILayer
         );
 
         _shortcutService.BindingsChanged += OnBindingsChanged;
+        if (_stationState != null)
+        {
+            _stationState.Changed += OnActiveStationChanged;
+        }
+
         GameShortcuts.ResolveSlotLabels(_shortcutService, _slotLabels);
         _slotLabelsDirty = 0;
     }
@@ -992,33 +1002,98 @@ internal sealed class Inventory : IUILayer
         _playerData.ApplyMove(_ecsContext.World.DataStore, in transferOp);
     }
 
+    private void OnActiveStationChanged(ActiveStationComponent previous, ActiveStationComponent current)
+    {
+        bool shouldOpenContextual = current.IsOpen && current.Kind == StationUiKind.ContextualTab;
+        if (shouldOpenContextual)
+        {
+            lock (_openLock)
+            {
+                if (_open)
+                {
+                    _openedForStation = true;
+                    return;
+                }
+
+                if (!_interactionState.TryBlockInteractionExclusive(out _interactionBlocker))
+                {
+                    return;
+                }
+
+                ClearPendingInput();
+                _open = true;
+                _openedForStation = true;
+            }
+
+            return;
+        }
+
+        if (previous.IsOpen && previous.Kind == StationUiKind.ContextualTab)
+        {
+            lock (_openLock)
+            {
+                if (_open && _openedForStation)
+                {
+                    CloseOverlayLocked();
+                }
+            }
+        }
+    }
+
     private void OnToggleInventoryPressed()
     {
-        if (_open)
+        var wasOpen = false;
+        lock (_openLock)
         {
-            ResetDragState();
-            ClearPendingInput();
-            _interactionBlocker?.Dispose();
-            _interactionBlocker = null;
-            _open = false;
-            return;
+            if (_open)
+            {
+                CloseOverlayLocked();
+                wasOpen = true;
+            }
+            else
+            {
+                if (!_interactionState.TryBlockInteractionExclusive(out _interactionBlocker))
+                {
+                    return;
+                }
+
+                ClearPendingInput();
+                _open = true;
+                _openedForStation = false;
+            }
         }
 
-        if (!_interactionState.TryBlockInteractionExclusive(out _interactionBlocker))
+        if (wasOpen && _stationState != null && _stationState.IsContextualTabOpen)
         {
-            return;
+            _stationState.EnqueueCloseStation();
         }
-
-        ClearPendingInput();
-        _open = true;
     }
 
     private void OnCloseInventoryPressed()
+    {
+        var wasOpen = false;
+        lock (_openLock)
+        {
+            if (_open)
+            {
+                CloseOverlayLocked();
+                wasOpen = true;
+            }
+        }
+
+        if (wasOpen && _stationState != null && _stationState.IsContextualTabOpen)
+        {
+            _stationState.EnqueueCloseStation();
+        }
+    }
+
+    private void CloseOverlayLocked()
     {
         ResetDragState();
         ClearPendingInput();
         _interactionBlocker?.Dispose();
         _interactionBlocker = null;
         _open = false;
+        _openedForStation = false;
     }
 }

@@ -67,6 +67,9 @@ public sealed class ServerBrickEntityService
             ];
     }
 
+    /// <summary>Raised when a live brick-entity is destroyed, immediately before its ECS entity is freed.</summary>
+    internal event Action<DataStore, int, Uuid>? BrickEntityDestroyed;
+
     /// <summary>The number of live server brick-entities tracked by this world.</summary>
     public int Count => _byAnchor.Count;
 
@@ -94,6 +97,12 @@ public sealed class ServerBrickEntityService
     public bool TryGetEntity(Uuid structureUuid, Int3 coord, out int entity)
     {
         return _byAnchor.TryGetValue(new BrickAnchorComponent(structureUuid, coord), out entity);
+    }
+
+    /// <summary>Attempts to resolve the <see cref="Brick"/> definition associated with <paramref name="entity"/>.</summary>
+    internal bool TryGetBrick(int entity, out Brick? brick)
+    {
+        return _brickByEntity.TryGetValue(entity, out brick);
     }
 
     /// <summary>Gets all live brick-entity ids anchored to <paramref name="structureUuid"/>.</summary>
@@ -704,10 +713,12 @@ public sealed class ServerBrickEntityService
             }
         }
 
-        ulong entityUuid = store.GetUuid(brickEntity).ToValue();
-        _replication?.DetachAllViewers(brickEntity, entityUuid);
+        Uuid entityUuid = store.GetUuid(brickEntity);
+        ulong rawUuid = entityUuid.ToValue();
+        _replication?.DetachAllViewers(brickEntity, rawUuid);
+        BrickEntityDestroyed?.Invoke(store, brickEntity, entityUuid);
 
-        if (entityUuid != 0UL)
+        if (rawUuid != 0UL)
         {
             store.Free(brickEntity);
         }
@@ -767,7 +778,7 @@ public sealed class ServerBrickEntityService
         return true;
     }
 
-    private Result ValidateViewerAccess(
+    internal Result ValidateViewerAccess(
         DataStore store,
         Uuid clientId,
         int playerEntity,

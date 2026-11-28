@@ -93,9 +93,10 @@ Only `ServerOwned` registrations accept `OwnerOnly`, `OthersOnly`, or
 `LaserBeamComponent` uses `OthersOnly`
 (`WaywardBeyond.Networking/NetworkingComposition.cs:39-44`) so the server omits
 the shooter's own beam updates and removals while the shooter renders a locally
-predicted beam. `StatisticsComponent` uses `OwnerOnly`
-(`WaywardBeyond.Networking/NetworkingComposition.cs:47-52`). The server sends a
-player's vitals, attributes, and buff timers only to that owning session.
+predicted beam. `StatisticsComponent` (`WaywardBeyond.Networking/NetworkingComposition.cs:47-52`)
+and `ActiveStationComponent` (`WaywardBeyond.Networking/NetworkingComposition.cs:59-64`)
+use `OwnerOnly`. The server sends a player's vitals, attributes, buff timers,
+and active station binding only to that owning session.
 `InventoryComponent` (`WaywardBeyond.Networking/NetworkingComposition.cs:29-34`)
 and `MachineStateComponent` (`WaywardBeyond.Networking/NetworkingComposition.cs:53-58`)
 use `ViewersOnly`. Players receive their own `InventoryComponent`, and clients
@@ -127,6 +128,8 @@ Wired in `WaywardBeyond.Networking/NetworkingComposition.cs`.
 | `ParticleEmitterBindingComponent` | 19 | ServerOwned | `NsdComponentCodec<ParticleEmitterBindingComponent>` |
 | `StatisticsComponent` | 20 | ServerOwned | `NsdComponentCodec<StatisticsComponent>` (`OwnerOnly`) |
 | `MachineStateComponent` | 21 | ServerOwned | `NsdComponentCodec<MachineStateComponent>` (`ViewersOnly`) |
+| `ActiveStationComponent` | 22 | ServerOwned | `NsdComponentCodec<ActiveStationComponent>` (`OwnerOnly`) |
+| `StationActionEvent` | 23 | ClientOwned | `NsdComponentCodec<StationActionEvent>` |
 
 `InputComponent` (`WaywardBeyond.Data/Nsd/components.nsd:5-19`) serializes movement, look totals, sequence bookkeeping, `DampenersDisabled` (field `8`, default `false` for dampeners enabled), held action buttons, and `PaintId`.
 
@@ -171,3 +174,7 @@ consumes items against its values. See [join](networking-join.md) and
 - `WaywardBeyond.Tests/BrickEntityTests.cs` pins `ViewersOnly` registration for
   `InventoryComponent` and `MachineStateComponent`, initial attach snapshots,
   live deltas, targeted detach despawns, and non-viewer isolation.
+- `WaywardBeyond.Tests/ActivateAndStationActionTests.cs` pins `OwnerOnly`
+  registration for `ActiveStationComponent`, `ClientOwned` registration for
+  `StationActionEvent`, wire round-trips, and viewer isolation during station
+  activation and teardown.

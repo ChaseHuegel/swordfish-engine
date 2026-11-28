@@ -10,6 +10,7 @@ using WaywardBeyond.Server.Interactions;
 using WaywardBeyond.Server.Particles;
 using WaywardBeyond.Server.Permissions;
 using WaywardBeyond.Server.Saves;
+using WaywardBeyond.Server.Stations;
 using WaywardBeyond.Server.Systems;
 using WaywardBeyond.Bricks;
 using WaywardBeyond.Config;
@@ -20,6 +21,7 @@ using WaywardBeyond.Data.Buffs;
 using WaywardBeyond.Data.Localization;
 using WaywardBeyond.Gameplay;
 using WaywardBeyond.Gameplay.Interactions;
+using WaywardBeyond.Gameplay.Stations;
 using WaywardBeyond.Gameplay.Statistics;
 using WaywardBeyond.Items;
 using WaywardBeyond.Networking.Registry;
@@ -37,8 +39,8 @@ namespace WaywardBeyond.Server;
 /// <see cref="IEntitySystem"/>), so the client's ECS context cannot resolve them; third-party modules
 /// contribute world systems through <see cref="RegisterServerSystem{T}"/>, which appends them after
 /// the built-ins. Registration order is the world's tick order: join/disconnect → saves →
-/// replication apply → inventory → heartbeats → physics → survival → interaction → laser beam → paint sprayer →
-/// chat → particle flush → replication publish.
+/// replication apply → inventory → heartbeats → physics → survival → station actions → interaction →
+/// laser beam → paint sprayer → region → chat → brick entities → particle flush → replication publish.
 /// </summary>
 public static class ServerComposition
 {
@@ -85,6 +87,8 @@ public static class ServerComposition
         container.Register<IServerBrickEntityDecorator, InventoryBrickEntityDecorator>(Reuse.Singleton, ifAlreadyRegistered: IfAlreadyRegistered.AppendNewImplementation);
         container.Register<IServerBrickEntityDecorator, MachineBrickEntityDecorator>(Reuse.Singleton, ifAlreadyRegistered: IfAlreadyRegistered.AppendNewImplementation);
         container.Register<ServerBrickEntityService>();
+        container.Register<ServerStationService>();
+        container.RegisterDelegate<IStationSession>(context => context.Resolve<ServerStationService>());
         container.Register<ServerParticleService>();
         container.RegisterDelegate<IServerParticleService>(context => context.Resolve<ServerParticleService>());
         //  The world physics bundle is created directly (it owns the engine's Jolt system) and exposed
@@ -117,6 +121,9 @@ public static class ServerComposition
         container.Register(made: Made.Of(() => CreatePhysicsSlot(Arg.Of<IServerWorldPhysics>())), ifAlreadyRegistered: IfAlreadyRegistered.AppendNewImplementation);
         //  Survival reads the sim tick the physics step just advanced, so it runs after the physics slot.
         RegisterServerSystem<ServerSurvivalSystem>(container);
+        //  Station actions run after inventory and survival and before interactions so a same-tick
+        //  CloseStation precedes a fresh Activate, while transfers and lethal damage are already applied.
+        RegisterServerSystem<ServerStationActionSystem>(container);
         container.Register<ServerInteractionSystem>(
             made: Made.Of(() => new ServerInteractionSystem(
                 Arg.Of<SessionManager>(),
@@ -124,7 +131,8 @@ public static class ServerComposition
                 Arg.Of<IInteractionHandlerRegistry>(),
                 Arg.Of<Func<DataStore, IVoxelInteractionWorld>>(),
                 Arg.Of<SimulationStep>(),
-                Arg.Of<ServerBrickEntityService>()
+                Arg.Of<ServerBrickEntityService>(),
+                Arg.Of<ServerStationService>()
             ))
         );
         container.Register(made: Made.Of(() => CreateInteractionSystem(Arg.Of<ServerInteractionSystem>())));
@@ -151,12 +159,19 @@ public static class ServerComposition
         container.Register<IInteractionHandler, AdventureBreakHoldValidator>(Reuse.Singleton);
         container.Register<IInteractionHandler, VoxelFaceWriteCommitter>(Reuse.Singleton);
         container.Register<IInteractionHandler, VoxelWriteCommitter>(Reuse.Singleton);
+        container.Register<IInteractionHandler, StationActivateCommitter>(Reuse.Singleton);
         container.Register<IInteractionHandler, BreakLootReactor>(Reuse.Singleton);
         container.Register<IInteractionHandler, PlaceConsumeReactor>(Reuse.Singleton);
         container.Register<IInteractionHandler, ConsumeItemInteractionHandler>(Reuse.Singleton);
         container.Register<IInteractionHandler, SkillXpReactor>(Reuse.Singleton);
         container.Register<InteractionHandlerRegistry>(Reuse.Singleton);
         container.RegisterMapping<IInteractionHandlerRegistry, InteractionHandlerRegistry>();
+
+        container.Register<IStationActionHandler, CloseStationActionHandler>(Reuse.Singleton);
+        container.Register<IStationActionHandler, TogglePowerStationActionHandler>(Reuse.Singleton);
+        container.Register<StationActionHandlerRegistry>(Reuse.Singleton);
+        container.RegisterMapping<IStationActionHandlerRegistry, StationActionHandlerRegistry>();
+
         container.Register<IEntryPoint, InteractionHandlerEntryPoint>(Reuse.Singleton);
 
         //  DryIoc children only inherit a parent singleton the parent has already created. Resolve

@@ -63,24 +63,26 @@ on current runtimes.
 ## What is per-world
 
 - `World`/`DataStore`, `SessionManager`, `LevelSaveService`, `SimulationStep`,
-  physics, `NetworkReplicationSystem`, `IServerParticleService`,
+  physics, `NetworkReplicationSystem`, `ServerBrickEntityService`,
+  `ServerStationService` (`IStationSession`), `IServerParticleService`,
   `ServerInteractionSystem`, `ServerJoinQueue`, `IUserPermissionService`, and the
   interaction world factory.
 - World systems, in canonical tick order:
   `ServerJoinSystem` → `ServerSaveSystem` → `NetworkApplySystem` →
   `ServerInventorySystem` → `ServerHeartbeatService` → physics → `ServerSurvivalSystem` →
-  `ServerInteractionSystem` → `ServerLaserBeamSystem` →
-  `ServerPaintSprayerSystem` → `ServerChatSystem` →
-  `ServerParticleFlushSystem` → `NetworkPublishSystem`.
+  `ServerStationActionSystem` → `ServerInteractionSystem` → `ServerLaserBeamSystem` →
+  `ServerPaintSprayerSystem` → `ServerRegionSystem` → `ServerChatSystem` →
+  `ServerBrickEntitySystem` → `ServerParticleFlushSystem` → `NetworkPublishSystem`.
 - Replication state is per world, so full-sync sets, streaming gates, pending
   snapshots, and acks cannot leak between worlds.
 
 ## What stays shared
 
-`NetworkRegistry`, codecs, `SkillDatabase`, `IBrickRegistry`, `IBuffDatabase`, the interaction
-handler registry and the default handlers, `NetworkingConfig`,
+`NetworkRegistry`, codecs, `SkillDatabase`, `IBrickRegistry`, `IBuffDatabase`,
+the interaction handler registry and default handlers, the station action
+handler registry and default handlers, `NetworkingConfig`,
 `LoopbackRpcServerTransport`, `ServerRpcHost`/`LanHost` (one listen socket),
-`ServerPeers`, `ServerHostCommands`, `ServerHandlers`, `ILevelCatalog` and
+`ServerPeers`, `ServerHostCommands`, `ServerHandlers`, `ILevelCatalog`, and
 `StoragePaths`.
 
 ## Peer routing

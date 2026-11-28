@@ -104,6 +104,7 @@ enum InteractionKind
     PrimaryReleased = 2;
     SecondaryPressed = 3;
     SecondaryReleased = 4;
+    Activate = 5;
 }
 
 message BrickInteraction
@@ -164,4 +165,43 @@ message MachineStateComponent
     bool    PowerEnabled   = 4;
     bool    HasPower       = 5;
     byte    StatusFlags    = 6;
+}
+
+message ActiveStationComponent
+{
+    ulong  StationEntity = 0;
+    ulong  VoxelEntity   = 1;
+    int    VoxelX        = 2;
+    int    VoxelY        = 3;
+    int    VoxelZ        = 4;
+    string StationTag    = 5;
+    byte   UiKind        = 6;
+}
+
+enum StationActionKind
+{
+    None             = 0;
+    CloseStation     = 1;
+    StartCraft       = 2;
+    CancelCraft      = 3;
+    TogglePower      = 4;
+    RemoteToggleNode = 5;
+    Respawn          = 6;
+    Custom           = 7;
+}
+
+message StationActionOp
+{
+    ulong             TargetEntity = 0;
+    StationActionKind Action       = 1;
+    string?           ActionId     = 2;
+    string?           Argument     = 3;
+    uint              Count        = 4;
+}
+
+message StationActionEvent
+{
+    ulong            Entity         = 0;
+    uint             SequenceNumber = 1;
+    StationActionOp? Action         = 2;
 }

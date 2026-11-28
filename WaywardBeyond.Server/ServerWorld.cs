@@ -7,6 +7,7 @@ using WaywardBeyond.Server.Saves;
 using WaywardBeyond.Server.Systems;
 using WaywardBeyond.Gameplay;
 using WaywardBeyond.Gameplay.Interactions;
+using WaywardBeyond.Gameplay.Stations;
 
 namespace WaywardBeyond.Server;
 
@@ -34,6 +35,8 @@ public sealed class ServerWorld : IDisposable
     public NetworkReplicationSystem Replication { get; }
     /// <summary>The world server-managed brick-entity registry and lifecycle service, or null in minimal test containers.</summary>
     public ServerBrickEntityService? BrickEntities { get; }
+    /// <summary>The world active station binding and authorization service, or null in minimal test containers.</summary>
+    public ServerStationService? Stations { get; }
     /// <summary>The world particle replication and burst service.</summary>
     public IServerParticleService Particles { get; }
     /// <summary>The shared simulation step for this world.</summary>
@@ -41,6 +44,9 @@ public sealed class ServerWorld : IDisposable
 
     /// <summary>The shared interaction handler registry this world resolves through.</summary>
     internal IInteractionHandlerRegistry HandlerRegistry { get; }
+
+    /// <summary>The shared station action handler registry this world dispatches through, or null in minimal test containers.</summary>
+    internal IStationActionHandlerRegistry? StationActionRegistry { get; }
 
     private readonly IContainer _container;
 
@@ -56,12 +62,23 @@ public sealed class ServerWorld : IDisposable
         BrickEntities = container.IsRegistered<ServerBrickEntityService>()
             ? Pin<ServerBrickEntityService>(container)
             : null;
+        Stations = container.IsRegistered<ServerStationService>()
+            ? Pin<ServerStationService>(container)
+            : null;
+        if (Stations != null)
+        {
+            container.RegisterInstance<IStationSession>(Stations, ifAlreadyRegistered: IfAlreadyRegistered.Replace);
+        }
+
         SaveService = Pin<LevelSaveService>(container);
         ServerParticleService particles = Pin<ServerParticleService>(container);
         container.RegisterInstance<IServerParticleService>(particles, ifAlreadyRegistered: IfAlreadyRegistered.Replace);
         Particles = particles;
         //  Shared with every other world, so resolve it from the root instead of pinning a child copy.
         HandlerRegistry = container.Resolve<IInteractionHandlerRegistry>();
+        StationActionRegistry = container.IsRegistered<IStationActionHandlerRegistry>()
+            ? container.Resolve<IStationActionHandlerRegistry>()
+            : null;
         Pin<IServerWorldPhysics>(container);
         SimulationStep = Pin<SimulationStep>(container);
         Pin<Func<DataStore, IVoxelInteractionWorld>>(container);

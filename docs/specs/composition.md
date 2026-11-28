@@ -74,10 +74,11 @@ shared wire-up:
   `ServerComposition` registers `ServerPeers`, `ServerHostCommands`,
   `ServerHandlers`, and `ServerRpcHost`. The client module registers
   `ClientInbound`, `ClientHandlers`, and `ClientRpcHost`.
-- Interaction handlers: a handler declares its own stage and priority, and a
-  module registers it as an `IInteractionHandler`. `ServerComposition`
-  registers the built-ins and the host `IInteractionHandlerRegistry`.
-  `InteractionHandlerEntryPoint` builds the registry and `IStatResolver` from
+- Interaction and station handlers: each handler declares its own priority and
+  filter, and a module registers it as `IInteractionHandler` or
+  `IStationActionHandler`. `ServerComposition` registers the built-ins,
+  `IInteractionHandlerRegistry`, and `IStationActionHandlerRegistry`.
+  `InteractionHandlerEntryPoint` builds both registries and `IStatResolver` from
   every registration at startup, so a module that adds a handler or stat
   modifier source may load in any order.
 - Statistics: `StatisticsComposition.RegisterStatistics()`

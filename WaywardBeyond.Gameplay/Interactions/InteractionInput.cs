@@ -11,4 +11,7 @@ public enum InteractionInput : byte
 
     /// <summary>The secondary interaction input channel.</summary>
     Secondary = 2,
+
+    /// <summary>The discrete activate/interact input channel.</summary>
+    Activate = 3,
 }

@@ -155,4 +155,46 @@ public static class StageRingExtensions
             ? Result<InventoryOp>.FromSuccess(best)
             : Result<InventoryOp>.FromFailure((string?)null);
     }
+
+    /// <summary>Stages one station action op, replacing a re-staged sequence in place.</summary>
+    public static void Stage(this StageRing<StagedStationAction> ring, uint sequenceNumber, in StationActionOp op)
+    {
+        var value = new StagedStationAction(sequenceNumber, in op);
+        for (var index = 0; index < ring.Count; index++)
+        {
+            if (ring[index].SequenceNumber == value.SequenceNumber)
+            {
+                ring[index] = value;
+                return;
+            }
+        }
+
+        ring.Add(value);
+    }
+
+    /// <summary>Returns the oldest unconsumed station action op.</summary>
+    public static Result<StagedStationAction> Consume(this StageRing<StagedStationAction> ring, uint lastSequenceNumber)
+    {
+        var found = false;
+        StagedStationAction best = default;
+
+        for (var index = 0; index < ring.Count; index++)
+        {
+            StagedStationAction entry = ring[index];
+            if (entry.SequenceNumber <= lastSequenceNumber)
+            {
+                continue;
+            }
+
+            if (!found || entry.SequenceNumber < best.SequenceNumber)
+            {
+                found = true;
+                best = entry;
+            }
+        }
+
+        return found
+            ? Result<StagedStationAction>.FromSuccess(best)
+            : Result<StagedStationAction>.FromFailure((string?)null);
+    }
 }
