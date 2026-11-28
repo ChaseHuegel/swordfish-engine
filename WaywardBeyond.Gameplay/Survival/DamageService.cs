@@ -72,7 +72,7 @@ public static class DamageService
 
     private static float Mitigate(in StatisticsComponent stats, float amount, DamageSource source)
     {
-        if (source != DamageSource.Kinetic)
+        if (source != DamageSource.KineticImpact)
         {
             return amount;
         }

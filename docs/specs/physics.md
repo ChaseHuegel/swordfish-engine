@@ -13,6 +13,8 @@ Each fixed step runs `StepSolver` (`JoltPhysicsSystem.cs:227-246`):
 1. Inside `_solverLock`, `FixedUpdate` fires, queued thread-context releases drain, `PhysicsComponentProcessor` destroys removed bodies, `SyncJoltToEntityAction` pushes entity changes to Jolt, `System.Update` steps the solver, and `SyncEntityToJoltAction` copies simulated transforms and velocities back to components.
 2. Outside `_solverLock`, `_contactBuffer.Drain` invokes `ContactResolved` on the physics tick thread (`JoltPhysicsSystem.cs:245`). Subscribers can query `Raycast` or `Overlaps` and mutate the `DataStore` without deadlocking `_solverLock`.
 
+Game worlds consume the event through their own physics service identity. The server forwards it from `ServerPhysicsSystem` to `ServerCollisionDamageSystem`, which queues contacts and applies Adventure Mode kinetic damage on its following tick. See [survival](survival.md).
+
 ## Entity mapping and stale bodies
 
 `SyncEntityToJoltAction` encodes each entity index into Jolt body `UserData` as `(ulong)entity + 1UL` when creating the body (`JoltPhysicsSystem.cs:303-306`, `:519`). Value `0` marks an unmapped or freed body.

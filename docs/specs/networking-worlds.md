@@ -68,8 +68,8 @@ on current runtimes.
   interaction world factory.
 - World systems, in canonical tick order:
   `ServerJoinSystem` → `ServerSaveSystem` → `NetworkApplySystem` →
-  `ServerInventorySystem` → `ServerHeartbeatService` → physics → `ServerSurvivalSystem` →
-  `ServerInteractionSystem` → `ServerLaserBeamSystem` →
+  `ServerInventorySystem` → `ServerHeartbeatService` → physics → `ServerCollisionDamageSystem` →
+  `ServerSurvivalSystem` → `ServerInteractionSystem` → `ServerLaserBeamSystem` →
   `ServerPaintSprayerSystem` → `ServerChatSystem` →
   `ServerParticleFlushSystem` → `NetworkPublishSystem`.
 - Replication state is per world, so full-sync sets, streaming gates, pending

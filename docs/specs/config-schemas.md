@@ -140,6 +140,10 @@ Gameplay tunables shared by the client and the server, registered via
 | `ControlHints` | bool | `true` | show the control hints overlay |
 | `Crosshair` | bool | `true` | show the crosshair |
 | `FirstPersonSway` | bool | `true` | enable reactive first-person view-model sway when moving and turning |
+| `CollisionSafeSpeed` | float | `6` | closing impact speed in meters per second below which collisions deal no damage |
+| `CollisionDamagePerSpeed` | float | `5` | kinetic damage per meter per second of impact speed above `CollisionSafeSpeed` |
+| `CollisionMaxDamage` | float | `100` | maximum kinetic damage one collision can deal before resistance mitigation |
+| `CollisionCooldownSeconds` | float | `0.25` | window during which a character ignores further collision damage; `0` disables debouncing |
 | `DefaultSpawnPosition` | float[3] | `[0, 1, 5]` | the position a character spawns at; the level-creation spawn row derives from it |
 | `Regions.MaxEdge` | int | `64` | maximum region edge length in voxels; `0` means unlimited |
 | `Regions.MaxVolume` | int | `65536` | maximum region bounding volume in voxels; `0` means unlimited |
