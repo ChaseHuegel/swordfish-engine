@@ -646,9 +646,14 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable
     public bool IsRecipePreview => HasSelectedAsset && ActivePreviewDescriptor.Mode == PreviewSurfaceMode.RecipeFlow;
 
     /// <summary>
+    ///     Whether the active asset is a slot group showing the interactive slot layout preview.
+    /// </summary>
+    public bool IsSlotGroupPreview => HasSelectedAsset && ActivePreviewDescriptor.Mode == PreviewSurfaceMode.SlotGroupLayout;
+
+    /// <summary>
     ///     Whether the right inspector renders a graphical preview viewport.
     /// </summary>
-    public bool HasVisualPreview => HasSelectedAsset && !IsDataDocumentPreview && !IsRecipePreview;
+    public bool HasVisualPreview => HasSelectedAsset && !IsDataDocumentPreview && !IsRecipePreview && !IsSlotGroupPreview;
 
     /// <summary>
     ///     Whether the 3D viewport camera buttons apply to the active preview surface.
@@ -656,6 +661,7 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable
     public bool Has3DPreviewControls => HasSelectedAsset
         && ActivePreviewDescriptor.Mode != PreviewSurfaceMode.DataDocument
         && ActivePreviewDescriptor.Mode != PreviewSurfaceMode.RecipeFlow
+        && ActivePreviewDescriptor.Mode != PreviewSurfaceMode.SlotGroupLayout
         && ActivePreviewDescriptor.Mode != PreviewSurfaceMode.PaintSwatch
         && ActivePreviewDescriptor.Mode != PreviewSurfaceMode.BodySprite;
 
@@ -943,6 +949,7 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable
         OnPropertyChanged(nameof(HasVisualPreview));
         OnPropertyChanged(nameof(IsDataDocumentPreview));
         OnPropertyChanged(nameof(IsRecipePreview));
+        OnPropertyChanged(nameof(IsSlotGroupPreview));
         OnPropertyChanged(nameof(Has3DPreviewControls));
         OnPropertyChanged(nameof(ShowOrientationButton));
         OnPropertyChanged(nameof(IsMaterialPreviewSelected));
@@ -1876,6 +1883,26 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable
         }
 
         ShowToast($"Target '{trimmed}' was not found in the workspace.");
+    }
+
+    [RelayCommand]
+    private void NavigateTagTarget(string? rawTagName)
+    {
+        var trimmed = rawTagName?.Trim() ?? string.Empty;
+        if (trimmed.StartsWith("tag:", StringComparison.Ordinal))
+        {
+            trimmed = trimmed[4..].Trim();
+        }
+
+        if (string.IsNullOrEmpty(trimmed))
+        {
+            return;
+        }
+
+        if (!SelectAsset(AssetKind.Tag, trimmed, relativeFile: null, pushHistory: true))
+        {
+            ShowToast($"Tag '{trimmed}' was not found in the workspace.");
+        }
     }
 
     [RelayCommand]
@@ -3489,6 +3516,7 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable
                 AssetKind.Item => "Items",
                 AssetKind.Paint => "Paints",
                 AssetKind.Recipe => "Recipes",
+                AssetKind.SlotGroup => "Slot Groups",
                 AssetKind.Skill => "Skills",
                 AssetKind.Body => "Bodies",
                 AssetKind.Material => "Materials",
@@ -4014,6 +4042,7 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable
             OnPropertyChanged(nameof(Has3DPreviewControls));
             OnPropertyChanged(nameof(IsDataDocumentPreview));
             OnPropertyChanged(nameof(IsRecipePreview));
+        OnPropertyChanged(nameof(IsSlotGroupPreview));
             OnPropertyChanged(nameof(HasVisualPreview));
             OnPropertyChanged(nameof(ShouldMountGlViewport));
             return;
@@ -4094,6 +4123,7 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable
             PreviewSurfaceMode.MaterialPreview => $"{doc.MaterialAlphaModeField?.Value ?? "Opaque"}",
             PreviewSurfaceMode.BlueprintVoxel => doc.BlueprintSizeLabel,
             PreviewSurfaceMode.RecipeFlow => $"{doc.RecipeTargetTagLabel} · {doc.RecipeModeBadge}",
+            PreviewSurfaceMode.SlotGroupLayout => $"{doc.SlotGroupCapacityBadge} · {doc.SlotGroupSlotsSummary}",
             _ => $"{doc.Kind} Document",
         };
 
@@ -4120,6 +4150,7 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable
         OnPropertyChanged(nameof(IsMaterialPreviewSelected));
         OnPropertyChanged(nameof(IsDataDocumentPreview));
         OnPropertyChanged(nameof(IsRecipePreview));
+        OnPropertyChanged(nameof(IsSlotGroupPreview));
         OnPropertyChanged(nameof(HasVisualPreview));
         OnPropertyChanged(nameof(ShouldMountGlViewport));
 

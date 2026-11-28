@@ -368,24 +368,28 @@ public class RecipeDatabaseTests : IDisposable
         Assert.False(recipes.IsValidInputForStation("station.unknown", "wb:rock"));
 
         //  Manual recipe is ignored by FindAutoMatch, and insufficient count returns failure.
-        var oneRock = new InventoryComponent(4);
-        oneRock.Contents[0] = new ItemData("wb:rock", 1, 100);
+        var input0 = new SlotId(SlotGroups.INPUT, 0);
+        var input1 = new SlotId(SlotGroups.INPUT, 1);
+        var input2 = new SlotId(SlotGroups.INPUT, 2);
+
+        InventoryComponent oneRock = InventoryComponent.Create(new SlotGroupDescriptor(SlotGroups.INPUT, 4));
+        oneRock.Set(in input0, new ItemData("wb:rock", 1, 100));
         Assert.False(recipes.FindAutoMatch("station.refinery", in oneRock).Success);
-        Assert.False(recipes.FindAutoMatch("station.refinery", oneRock.Contents.AsSpan()).Success);
+        Assert.False(recipes.FindAutoMatch("station.refinery", oneRock.AsSpan()).Success);
 
         //  2 rocks across split slots satisfy wb:single_mineral (but not wb:refined_combo which needs 3 total).
-        var twoRocks = new InventoryComponent(4);
-        twoRocks.Contents[0] = new ItemData("wb:rock", 1, 100);
-        twoRocks.Contents[2] = new ItemData("wb:rock", 1, 100);
+        InventoryComponent twoRocks = InventoryComponent.Create(new SlotGroupDescriptor(SlotGroups.INPUT, 4));
+        twoRocks.Set(in input0, new ItemData("wb:rock", 1, 100));
+        twoRocks.Set(in input2, new ItemData("wb:rock", 1, 100));
         Result<Recipe> matchSplit = recipes.FindAutoMatch("station.refinery", in twoRocks);
         Assert.True(matchSplit.Success);
         Assert.Equal("wb:single_mineral", matchSplit.Value.ID);
 
         //  2 rocks + 1 ice satisfy higher-priority wb:refined_combo without the tag starving the direct requirement.
-        var combo = new InventoryComponent(4);
-        combo.Contents[0] = new ItemData("wb:ice", 1, 100);
-        combo.Contents[1] = new ItemData("wb:rock", 2, 100);
-        Result<Recipe> matchCombo = recipes.FindAutoMatch("station.refinery", combo.Contents.AsSpan());
+        InventoryComponent combo = InventoryComponent.Create(new SlotGroupDescriptor(SlotGroups.INPUT, 4));
+        combo.Set(in input0, new ItemData("wb:ice", 1, 100));
+        combo.Set(in input1, new ItemData("wb:rock", 2, 100));
+        Result<Recipe> matchCombo = recipes.FindAutoMatch("station.refinery", combo.AsSpan());
         Assert.True(matchCombo.Success);
         Assert.Equal("wb:refined_combo", matchCombo.Value.ID);
 

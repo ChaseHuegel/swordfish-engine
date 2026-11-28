@@ -1029,6 +1029,7 @@ public sealed class AssetCloner
             AssetKind.Skill => "Skills",
             AssetKind.Body => "Bodies",
             AssetKind.Recipe => "Recipes",
+            AssetKind.SlotGroup => "SlotGroups",
             _ => null
         };
     }
@@ -1043,6 +1044,7 @@ public sealed class AssetCloner
             AssetKind.Skill => "skills",
             AssetKind.Body => "bodies",
             AssetKind.Recipe => "recipes",
+            AssetKind.SlotGroup => "inventory",
             _ => null
         };
     }

@@ -264,10 +264,11 @@ public class CharacterLocationSaveTests
         RpcResult<JoinAccept> joined = await harness.JoinAsync(peer, request);
         Assert.True(joined.IsSuccess, joined.ErrorMessage);
 
-        ItemData[] inventory = harness.GetPlayerInventory(peer.GameId);
-        Assert.Equal("laser", inventory[0].ID);
-        Assert.Equal(1, inventory[0].Count);
-        Assert.DoesNotContain(inventory, item => !item.IsEmpty() && item.ID != "laser");
+        InventoryComponent inventory = harness.GetPlayerInventory(peer.GameId);
+        ItemData slot0 = inventory.Get(new SlotId(SlotGroups.HOTBAR, 0));
+        Assert.Equal("laser", slot0.ID);
+        Assert.Equal(1, slot0.Count);
+        Assert.DoesNotContain(inventory.ToSparseEntries(), entry => entry.Item.ID != "laser");
     }
 
     [Fact]
@@ -281,11 +282,11 @@ public class CharacterLocationSaveTests
         RpcResult<JoinAccept> joined = await harness.JoinAsync(peer, request);
         Assert.True(joined.IsSuccess, joined.ErrorMessage);
 
-        ItemData[] inventory = harness.GetPlayerInventory(peer.GameId);
-        Assert.Contains(inventory, item => item.ID == "laser");
-        Assert.Contains(inventory, item => item.ID == "wb:projector");
-        Assert.Contains(inventory, item => item.ID == "wb:drill");
-        Assert.Contains(inventory, item => item.ID == "wb:rock" && item.Count == 100);
+        KeyedSlotEntry[] entries = harness.GetPlayerInventory(peer.GameId).ToSparseEntries();
+        Assert.Contains(entries, entry => entry.Item.ID == "laser");
+        Assert.Contains(entries, entry => entry.Item.ID == "wb:projector");
+        Assert.Contains(entries, entry => entry.Item.ID == "wb:drill");
+        Assert.Contains(entries, entry => entry.Item.ID == "wb:rock" && entry.Item.Count == 100);
     }
 
     [Theory]
@@ -297,17 +298,21 @@ public class CharacterLocationSaveTests
         using TestHarness harness = CreateHarness(storage);
         ServerPeer peer = harness.AddPeer(clientId: 1, isLocal: false);
 
-        ItemData[] saved = [new ItemData("wb:rock", 5, 100), new ItemData("wb:panel", 2, 100)];
+        KeyedSlotEntry[] saved =
+        [
+            new KeyedSlotEntry(SlotGroups.HOTBAR, 0, new ItemData("wb:rock", 5, 100)),
+            new KeyedSlotEntry(SlotGroups.HOTBAR, 1, new ItemData("wb:panel", 2, 100)),
+        ];
         JoinRequest request = CreateJoinRequest(LEVEL_GUID, characterUuid: 605, levelDefaultMode, saved);
         RpcResult<JoinAccept> joined = await harness.JoinAsync(peer, request);
         Assert.True(joined.IsSuccess, joined.ErrorMessage);
 
-        ItemData[] inventory = harness.GetPlayerInventory(peer.GameId);
-        Assert.Equal("wb:rock", inventory[0].ID);
-        Assert.Equal(5, inventory[0].Count);
-        Assert.Equal("wb:panel", inventory[1].ID);
-        Assert.Equal(2, inventory[1].Count);
-        Assert.DoesNotContain(inventory, item => !item.IsEmpty() && item.ID == "laser");
+        InventoryComponent inventory = harness.GetPlayerInventory(peer.GameId);
+        Assert.Equal("wb:rock", inventory.Get(new SlotId(SlotGroups.HOTBAR, 0)).ID);
+        Assert.Equal(5, inventory.Get(new SlotId(SlotGroups.HOTBAR, 0)).Count);
+        Assert.Equal("wb:panel", inventory.Get(new SlotId(SlotGroups.HOTBAR, 1)).ID);
+        Assert.Equal(2, inventory.Get(new SlotId(SlotGroups.HOTBAR, 1)).Count);
+        Assert.DoesNotContain(inventory.ToSparseEntries(), entry => entry.Item.ID == "laser");
     }
 
     [Theory]
@@ -323,8 +328,8 @@ public class CharacterLocationSaveTests
         RpcResult<JoinAccept> joined = await harness.JoinAsync(peer, request);
         Assert.True(joined.IsSuccess, joined.ErrorMessage);
 
-        ItemData[] inventory = harness.GetPlayerInventory(peer.GameId);
-        Assert.DoesNotContain(inventory, item => !item.IsEmpty());
+        InventoryComponent inventory = harness.GetPlayerInventory(peer.GameId);
+        Assert.Empty(inventory.ToSparseEntries());
     }
 
     private static void AssertTransformEqual(Vector3 expectedPosition, Quaternion expectedOrientation, in JoinAccept accept)
@@ -338,7 +343,7 @@ public class CharacterLocationSaveTests
         Assert.Equal(expectedOrientation.W, accept.OrientationW, precision: 4);
     }
 
-    private static JoinRequest CreateJoinRequest(string levelGuid, ulong characterUuid, GameMode gameMode = GameMode.Adventure, ItemData[]? inventory = null)
+    private static JoinRequest CreateJoinRequest(string levelGuid, ulong characterUuid, GameMode gameMode = GameMode.Adventure, KeyedSlotEntry[]? inventory = null)
     {
         return new JoinRequest
         {
@@ -439,11 +444,11 @@ public class CharacterLocationSaveTests
             return mode.Mode;
         }
 
-        public ItemData[] GetPlayerInventory(Uuid clientId)
+        public InventoryComponent GetPlayerInventory(Uuid clientId)
         {
             Assert.True(sessions.TryGetEntity(clientId, out int entity));
             Assert.True(store.TryGet(entity, out InventoryComponent inventory));
-            return inventory.Contents!;
+            return inventory;
         }
 
         public void SetPlayerGameMode(Uuid clientId, GameMode mode)

@@ -48,7 +48,7 @@ overrides after the engine builds
 |---|---|---|
 | `WaywardBeyond.Networking` | `RegisterNetworking()` | `NetworkRegistry` and the built-in wire components |
 | `WaywardBeyond.Config` | `RegisterNetworkingConfig()` | `network.toml` config, its sub-config views, and validation |
-| `WaywardBeyond.Data` | `RegisterDataServices()` | shared data services (`Migrator`, `SeedPhraseService`), bundled blueprints, tags, and the content pack version entry point |
+| `WaywardBeyond.Data` | `RegisterDataServices()` | shared data services (`Migrator`, `SeedPhraseService`, `ISlotGroupSchemaDatabase` / `SlotGroupSchemaDatabase`), bundled blueprints, tags, and the content pack version entry point |
 | `WaywardBeyond.Data` (blueprints) | `BlueprintComposition.RegisterBundledBlueprints()` | headless bundled `.wbp` database (`IBundledBlueprintDatabase`) and parser (`BlueprintDataParser`) |
 | `WaywardBeyond.Data` (localization) | `LocalizationComposition.RegisterTags()` | localized tag database and parser |
 | `WaywardBeyond.Server` | `RegisterHost()`, `RegisterServer()` | host wire-up, server composition |

@@ -308,23 +308,16 @@ public sealed class ServerRegionSystem(
             return;
         }
 
-        if (!store.TryGet(playerEntity, out EquipmentComponent equipment) ||
-            !store.TryGet(playerEntity, out InventoryComponent inventory) ||
-            inventory.Contents == null)
+        if (!store.TryGet(playerEntity, out EquipmentComponent equipment)
+            || !store.TryGet(playerEntity, out InventoryComponent inventory))
         {
             call.Completion.TrySetResult(FailOp("notification.region.invalidTarget"));
             return;
         }
 
-        int slot = equipment.ActiveInventorySlot;
-        if (slot < 0 || slot >= inventory.Contents.Length)
-        {
-            call.Completion.TrySetResult(FailOp("notification.region.invalidTarget"));
-            return;
-        }
-
-        ItemData held = inventory.Contents[slot];
-        if (held.Count <= 0 || string.IsNullOrEmpty(held.ID))
+        var hotbarSlot = new SlotId(SlotGroups.HOTBAR, equipment.ActiveInventorySlot);
+        ItemData held = inventory.Get(in hotbarSlot);
+        if (held.IsEmpty())
         {
             call.Completion.TrySetResult(FailOp("notification.region.invalidTarget"));
             return;
@@ -390,8 +383,8 @@ public sealed class ServerRegionSystem(
             GameMode mode = store.TryGet(playerEntity, out GameModeComponent gameMode) ? gameMode.Mode : GameMode.Adventure;
             if (mode != GameMode.Creative)
             {
-                InventoryComponent updated = inventory;
-                updated.Remove(slot, 1);
+                InventoryComponent updated = inventory.Clone();
+                updated.Remove(in hotbarSlot, 1);
                 store.AddOrUpdate(playerEntity, updated);
             }
         }

@@ -168,11 +168,19 @@ correlated by nsd-rpc, so there is no FIFO queue or waiter table. A dropped
 connection faults pending calls. Every call rides the reliable send queue, so a
 create, list, delete, or save is never silently dropped.
 
-`GameSaveManager` (`WaywardBeyond.Client/Saves/GameSaveManager.cs`) owns the client save
+Game save logic lives in `GameSaveManager` (`WaywardBeyond.Client/Saves/GameSaveManager.cs`), which owns the client save
 cadence. Its autosave timer saves the character only. Pause, F5, and close call
 `Save()`, which saves the character and, on the local host only, sends a
-`SaveLevelAsync`. Remote clients never request a level save; the server
+`SaveLevelAsync`. Remote clients never request a level save. The server
 autosaves the level.
+
+Character inventories persist sparsely as `KeyedSlotEntry[]? Inventory` on
+`Character` (`WaywardBeyond.Data/Nsd/saves.nsd:70`) and `CharacterState`
+(`WaywardBeyond.Data/Nsd/levels.nsd:74`). `CharacterSaveManager` writes
+`ToSparseEntries()` on save (`WaywardBeyond.Client/Saves/CharacterSaveManager.cs:82`).
+A `null` `Inventory` signals a new character and grants the starter loadout on
+join (`WaywardBeyond.Server/Systems/ServerJoinSystem.cs:351`). An empty non-null
+array signals an intentionally emptied inventory that never restocks.
 
 ## Serialization and data versioning
 
@@ -180,9 +188,9 @@ autosaves the level.
 `DataVersion.CURRENT` and runs per-record forward migrations. Storage types
 guard and migrate on read: `SqliteCharacterStorage`, `SqliteLevelMetadataStorage`,
 and `SqliteLevelStorage` all refuse records stamped by a newer build. Structure
-data carries a brick palette since data version 4; `VoxelCodec`
-encodes live registry-id data to a palette on write and decodes on load. The
-`Character` and `Level` records stamp their format via the `Version` message.
+data carries a brick palette since data version 4. `VoxelCodec` encodes live
+registry-id data to a palette on write and decodes on load. The `Character` and
+`Level` records stamp their format via the `Version` message.
 See [brick-identity](brick-identity.md).
 
 The previous NATS JetStream store is no longer read. Existing JetStream data in
@@ -218,4 +226,6 @@ no shared broker process to manage.
 ## Tests that pin this
 
 - `WaywardBeyond.Tests/AdventureStarterWreckTests.cs` pins Adventure starter wreckage persistence, Creative omission, determinism, palette round-trips, and spawn/asteroid clearance.
+- `WaywardBeyond.Tests/KeyedInventoryTests.cs` pins sparse keyed character storage persistence round-trips.
+- `WaywardBeyond.Tests/CharacterLocationSaveTests.cs` pins join inventory seeding and non-restocking rules.
 - No tests pin the playtime rules.

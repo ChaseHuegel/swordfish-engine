@@ -154,4 +154,24 @@ public sealed class DocumentSavePayload
     ///     Whether statistics rows were modified since load or last save.
     /// </summary>
     public bool StatisticsModified { get; init; }
+
+    /// <summary>
+    ///     Current group-wide allowed invariant item tag keys for slot group documents.
+    /// </summary>
+    public IReadOnlyList<string>? SlotGroupAllowedTags { get; init; }
+
+    /// <summary>
+    ///     Whether group-wide allowed tags were modified since load or last save.
+    /// </summary>
+    public bool SlotGroupAllowedTagsModified { get; init; }
+
+    /// <summary>
+    ///     Current per-slot filter override rows for slot group documents.
+    /// </summary>
+    public IReadOnlyList<(int Index, IReadOnlyList<string> AllowedTags)>? SlotGroupSlots { get; init; }
+
+    /// <summary>
+    ///     Whether per-slot filter override rows were modified since load or last save.
+    /// </summary>
+    public bool SlotGroupSlotsModified { get; init; }
 }

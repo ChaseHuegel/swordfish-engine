@@ -36,6 +36,7 @@ internal static class AssetTomlEditApplier
             AssetKind.Skill => ApplySkillEdits(document, payload),
             AssetKind.Body => ApplyBodyEdits(document, payload),
             AssetKind.Recipe => ApplyRecipeEdits(document, payload),
+            AssetKind.SlotGroup => ApplySlotGroupEdits(document, payload),
             AssetKind.Material => ApplyMaterialEdits(document, payload),
             AssetKind.Tag => ApplyTagEdits(document, payload),
             AssetKind.Localization => ApplyLocalizationEdits(document, payload),
@@ -916,6 +917,164 @@ internal static class AssetTomlEditApplier
         }
 
         return sb.ToString();
+    }
+
+    private static Result ApplySlotGroupEdits(ToolsDocuments.TomlDocument doc, DocumentSavePayload payload)
+    {
+        var tableIndex = ResolvePrimaryTableIndex(doc, "SlotGroups", payload.TableIndex, payload.EntryIndex);
+        if (tableIndex < 0)
+        {
+            return Result.FromSuccess();
+        }
+
+        var slotGroupOrdinal = FindArrayTableOrdinal(doc, "SlotGroups", tableIndex);
+
+        ApplyScalar(doc, tableIndex, "Capacity", "Capacity", payload, ScalarKind.Integer);
+        tableIndex = ResolveArrayTableByOrdinal(doc, "SlotGroups", slotGroupOrdinal);
+        if (tableIndex < 0)
+        {
+            return Result.FromSuccess();
+        }
+
+        if (payload.SlotGroupAllowedTagsModified && payload.SlotGroupAllowedTags != null)
+        {
+            var cleanedTags = CleanStringList(payload.SlotGroupAllowedTags);
+            var existingField = doc.GetFieldInTable(tableIndex, "AllowedTags");
+            if (cleanedTags.Count == 0)
+            {
+                if (existingField.Success)
+                {
+                    var removeResult = doc.RemoveField(existingField.Value);
+                    if (!removeResult.Success)
+                    {
+                        return removeResult;
+                    }
+                }
+            }
+            else
+            {
+                var arrayExpr = FormatTomlStringArray(cleanedTags);
+                if (existingField.Success)
+                {
+                    var setResult = doc.SetRawValue(existingField.Value, arrayExpr);
+                    if (!setResult.Success)
+                    {
+                        return setResult;
+                    }
+                }
+                else
+                {
+                    var addResult = doc.AddField(doc.Tables[tableIndex], "AllowedTags", arrayExpr);
+                    if (!addResult.Success)
+                    {
+                        return addResult;
+                    }
+                }
+            }
+        }
+
+        if (payload.SlotGroupSlotsModified && payload.SlotGroupSlots != null)
+        {
+            var slotsBlock = BuildSlotGroupSlotsTomlBlock(payload.SlotGroupSlots, doc.LineEnding);
+            var slotsResult = ReplaceOwnedSlotGroupSubTables(doc, slotGroupOrdinal, slotsBlock);
+            if (!slotsResult.Success)
+            {
+                return slotsResult;
+            }
+        }
+
+        return Result.FromSuccess();
+    }
+
+    private static Result ReplaceOwnedSlotGroupSubTables(
+        ToolsDocuments.TomlDocument doc,
+        int slotGroupOrdinal,
+        string replacementBlock)
+    {
+        var ownerTableIndex = ResolveArrayTableByOrdinal(doc, "SlotGroups", slotGroupOrdinal);
+        if (ownerTableIndex < 0)
+        {
+            return Result.FromSuccess();
+        }
+
+        var lastOwned = FindLastOwnedTableIndex(doc, ownerTableIndex, "SlotGroups");
+
+        //  Remove existing owned [[SlotGroups.Slots]] tables from last to first so spans stay valid.
+        for (var i = lastOwned; i > ownerTableIndex; i--)
+        {
+            var table = doc.Tables[i];
+            if (table.HeaderPath.EndsWith(".Slots", StringComparison.OrdinalIgnoreCase))
+            {
+                var removeResult = RemoveTableSection(doc, i);
+                if (!removeResult.Success)
+                {
+                    return removeResult;
+                }
+            }
+        }
+
+        if (string.IsNullOrEmpty(replacementBlock))
+        {
+            return Result.FromSuccess();
+        }
+
+        ownerTableIndex = ResolveArrayTableByOrdinal(doc, "SlotGroups", slotGroupOrdinal);
+        if (ownerTableIndex < 0)
+        {
+            return Result.FromSuccess();
+        }
+
+        lastOwned = FindLastOwnedTableIndex(doc, ownerTableIndex, "SlotGroups");
+        var insertOffset = Math.Clamp(doc.Tables[lastOwned].ContentSpan.End, 0, doc.Text.Length);
+        return InsertRecipeTableBlockAtOffset(doc, insertOffset, replacementBlock);
+    }
+
+    private static string BuildSlotGroupSlotsTomlBlock(
+        IReadOnlyList<(int Index, IReadOnlyList<string> AllowedTags)> slots,
+        string eol)
+    {
+        if (slots.Count == 0)
+        {
+            return string.Empty;
+        }
+
+        var sb = new StringBuilder();
+        for (var i = 0; i < slots.Count; i++)
+        {
+            if (i > 0)
+            {
+                sb.Append(eol);
+                sb.Append(eol);
+            }
+
+            var slot = slots[i];
+            var cleanedTags = CleanStringList(slot.AllowedTags);
+            sb.Append("[[SlotGroups.Slots]]").Append(eol);
+            sb.Append("Index = ").Append(slot.Index.ToString(CultureInfo.InvariantCulture)).Append(eol);
+            sb.Append("AllowedTags = ").Append(FormatTomlStringArray(cleanedTags));
+        }
+
+        return sb.ToString();
+    }
+
+    private static List<string> CleanStringList(IReadOnlyList<string>? values)
+    {
+        var cleaned = new List<string>();
+        if (values == null)
+        {
+            return cleaned;
+        }
+
+        for (var i = 0; i < values.Count; i++)
+        {
+            var trimmed = values[i]?.Trim() ?? string.Empty;
+            if (trimmed.Length > 0)
+            {
+                cleaned.Add(trimmed);
+            }
+        }
+
+        return cleaned;
     }
 
     private static Result ApplySkillEdits(ToolsDocuments.TomlDocument doc, DocumentSavePayload payload)

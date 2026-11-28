@@ -5,6 +5,7 @@ using Swordfish.Library.Util;
 using WaywardBeyond.AssetStudio.Models;
 using WaywardBeyond.Bodies;
 using WaywardBeyond.Bricks;
+using WaywardBeyond.Data;
 using WaywardBeyond.Items;
 using WaywardBeyond.Recipes;
 using WaywardBeyond.Skills;
@@ -380,6 +381,7 @@ internal static class AssetSeedProjector
             AssetKind.Localization => ToolsWorkspace.AssetKind.Localization,
             AssetKind.Blueprint => ToolsWorkspace.AssetKind.Blueprint,
             AssetKind.Recipe => ToolsWorkspace.AssetKind.Recipe,
+            AssetKind.SlotGroup => ToolsWorkspace.AssetKind.SlotGroup,
             _ => ToolsWorkspace.AssetKind.Brick,
         };
     }
@@ -401,6 +403,7 @@ internal static class AssetSeedProjector
             ToolsWorkspace.AssetKind.Localization => AssetKind.Localization,
             ToolsWorkspace.AssetKind.Blueprint => AssetKind.Blueprint,
             ToolsWorkspace.AssetKind.Recipe => AssetKind.Recipe,
+            ToolsWorkspace.AssetKind.SlotGroup => AssetKind.SlotGroup,
             _ => AssetKind.Brick,
         };
     }
@@ -417,6 +420,7 @@ internal static class AssetSeedProjector
             (ToolsWorkspace.AssetKind.Item, AssetKind.Item, "Items"),
             (ToolsWorkspace.AssetKind.Paint, AssetKind.Paint, "Paints"),
             (ToolsWorkspace.AssetKind.Recipe, AssetKind.Recipe, "Recipes"),
+            (ToolsWorkspace.AssetKind.SlotGroup, AssetKind.SlotGroup, "Slot Groups"),
             (ToolsWorkspace.AssetKind.Skill, AssetKind.Skill, "Skills"),
             (ToolsWorkspace.AssetKind.Body, AssetKind.Body, "Bodies"),
             (ToolsWorkspace.AssetKind.Material, AssetKind.Material, "Materials"),
@@ -470,6 +474,8 @@ internal static class AssetSeedProjector
         var bodySpriteAbsPaths = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
         var recipeInputs = new List<(string ItemId, int Count, string SlotGroup)>();
         var recipeOutputs = new List<(string ItemId, int Count, string Chance)>();
+        var slotGroupAllowedTags = new List<string>();
+        var slotGroupSlots = new List<(int Index, List<string> AllowedTags)>();
         string? bodyFrontPath = null;
         string? materialTexturePath = null;
         string? paintTexturePath = null;
@@ -493,6 +499,9 @@ internal static class AssetSeedProjector
                 break;
             case RecipeDefinition recipe:
                 PopulateRecipeFields(in recipe, scalars, recipeInputs, recipeOutputs);
+                break;
+            case SlotGroupDefinition slotGroup:
+                PopulateSlotGroupFields(in slotGroup, scalars, slotGroupAllowedTags, slotGroupSlots);
                 break;
             case MaterialDefinition material:
                 materialTexturePath = PopulateMaterialFields(workspace, in material, scalars);
@@ -528,6 +537,8 @@ internal static class AssetSeedProjector
             BodySpriteAbsolutePaths = bodySpriteAbsPaths,
             RecipeInputs = recipeInputs,
             RecipeOutputs = recipeOutputs,
+            SlotGroupAllowedTags = slotGroupAllowedTags,
+            SlotGroupSlots = slotGroupSlots,
             ResolvedBodyFrontTexturePath = bodyFrontPath,
             ResolvedMaterialTexturePath = materialTexturePath,
             ResolvedPaintTexturePath = paintTexturePath,
@@ -742,6 +753,49 @@ internal static class AssetSeedProjector
                     ? output.Chance.Value.ToString(CultureInfo.InvariantCulture)
                     : string.Empty;
                 outputs.Add((output.ItemId ?? string.Empty, output.Count, chance));
+            }
+        }
+    }
+
+    private static void PopulateSlotGroupFields(
+        in SlotGroupDefinition slotGroup,
+        Dictionary<string, string> scalars,
+        List<string> allowedTags,
+        List<(int Index, List<string> AllowedTags)> slots)
+    {
+        scalars["Capacity"] = slotGroup.Capacity.ToString(CultureInfo.InvariantCulture);
+
+        if (slotGroup.AllowedTags != null)
+        {
+            for (var i = 0; i < slotGroup.AllowedTags.Count; i++)
+            {
+                var tag = slotGroup.AllowedTags[i]?.Trim() ?? string.Empty;
+                if (tag.Length > 0)
+                {
+                    allowedTags.Add(tag);
+                }
+            }
+        }
+
+        if (slotGroup.Slots != null)
+        {
+            for (var i = 0; i < slotGroup.Slots.Count; i++)
+            {
+                var slotDef = slotGroup.Slots[i];
+                var slotTags = new List<string>();
+                if (slotDef.AllowedTags != null)
+                {
+                    for (var t = 0; t < slotDef.AllowedTags.Count; t++)
+                    {
+                        var tag = slotDef.AllowedTags[t]?.Trim() ?? string.Empty;
+                        if (tag.Length > 0)
+                        {
+                            slotTags.Add(tag);
+                        }
+                    }
+                }
+
+                slots.Add((slotDef.Index, slotTags));
             }
         }
     }
@@ -1132,6 +1186,24 @@ internal static class AssetSeedProjector
                 p.ProviderRootName,
                 p.RelativePath,
                 ThumbnailPath: itemThumb));
+        }
+
+        foreach (var slotGroup in workspace.GetWinningAssetsByKind(ToolsWorkspace.AssetKind.SlotGroup))
+        {
+            var p = slotGroup.Provenance;
+            var detail = p.RelativePath;
+            if (slotGroup.AuthoritativeDefinition is SlotGroupDefinition sgDef)
+            {
+                detail = $"{sgDef.Capacity} slot(s) · {p.RelativePath}";
+            }
+
+            list.Add(new ReferenceCandidate(
+                slotGroup.Id,
+                ReferenceKind.SlotGroupId,
+                MapProvenance(studioMode, in p),
+                ReferenceResolutionState.Resolved,
+                p.ProviderRootName,
+                detail));
         }
 
         var sortedBlueprints = new List<KeyValuePair<string, string>>(workspace.WinningBlueprintFiles);
@@ -2422,6 +2494,11 @@ internal static class AssetSeedProjector
             return AssetKind.Recipe;
         }
 
+        if (lower.Contains("/inventory/"))
+        {
+            return AssetKind.SlotGroup;
+        }
+
         if (lower.Contains("/skills/"))
         {
             return AssetKind.Skill;
@@ -2457,6 +2534,7 @@ internal static class AssetSeedProjector
             AssetKind.Item => "Items",
             AssetKind.Paint => "Paints",
             AssetKind.Recipe => "Recipes",
+            AssetKind.SlotGroup => "Slot Groups",
             AssetKind.Skill => "Skills",
             AssetKind.Body => "Bodies",
             AssetKind.Material => "Materials",

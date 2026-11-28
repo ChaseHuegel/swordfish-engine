@@ -49,7 +49,7 @@ public class HotbarInventoryLinkedBindingTests
             var world = new World();
             int player = world.DataStore.Alloc();
             world.DataStore.AddOrUpdate(player, new PlayerComponent());
-            world.DataStore.AddOrUpdate(player, new InventoryComponent(45));
+            world.DataStore.AddOrUpdate(player, InventoryComponent.CreatePlayer());
             world.DataStore.AddOrUpdate(player, new EquipmentComponent { ActiveInventorySlot = 3 });
             world.DataStore.AddOrUpdate(player, new PendingInventoryComponent());
 
@@ -59,7 +59,7 @@ public class HotbarInventoryLinkedBindingTests
             var playerData = new PlayerData(items);
             playerData.MutateInventory(world.DataStore, (ref InventoryComponent inventory) =>
             {
-                inventory.Contents![9] = new ItemData("wb:brick", 5, 64);
+                inventory.Set(new SlotId(SlotGroups.BACKPACK, 0), new ItemData("wb:brick", 5, 64));
             });
             var ecs = new TestEcsContext(world);
             var motionProcessor = new ClientPlayerMotionProcessor(input, new FakeWindowContext(), new FakePhysics(), new EventInvoker<PlayerMovedEvent>([]));
@@ -119,9 +119,10 @@ public class HotbarInventoryLinkedBindingTests
 
             input.KeyPressed?.Invoke(input, new KeyEventArgs(Key.Numpad1));
             InventoryComponent updated = playerData.GetInventory(world.DataStore).Value;
-            Assert.Equal("wb:brick", updated.Contents[0].ID);
-            Assert.Equal(5, updated.Contents[0].Count);
-            Assert.Equal(0, updated.Contents[9].Count);
+            ItemData hotbar0 = updated.Get(new SlotId(SlotGroups.HOTBAR, 0));
+            Assert.Equal("wb:brick", hotbar0.ID);
+            Assert.Equal(5, hotbar0.Count);
+            Assert.Equal(0, updated.Get(new SlotId(SlotGroups.BACKPACK, 0)).Count);
         }
         finally
         {
@@ -140,7 +141,7 @@ public class HotbarInventoryLinkedBindingTests
             var world = new World();
             int player = world.DataStore.Alloc();
             world.DataStore.AddOrUpdate(player, new PlayerComponent());
-            world.DataStore.AddOrUpdate(player, new InventoryComponent(45));
+            world.DataStore.AddOrUpdate(player, InventoryComponent.CreatePlayer());
             world.DataStore.AddOrUpdate(player, new EquipmentComponent { ActiveInventorySlot = 2 });
             world.DataStore.AddOrUpdate(player, new PendingInventoryComponent());
 
@@ -152,7 +153,7 @@ public class HotbarInventoryLinkedBindingTests
             var playerData = new PlayerData(items);
             playerData.MutateInventory(world.DataStore, (ref InventoryComponent inventory) =>
             {
-                inventory.Contents![2] = new ItemData("wb:core", 1, 1);
+                inventory.Set(new SlotId(SlotGroups.HOTBAR, 2), new ItemData("wb:core", 1, 1));
             });
             var ecs = new TestEcsContext(world);
             var motionProcessor = new ClientPlayerMotionProcessor(input, new FakeWindowContext(), new FakePhysics(), new EventInvoker<PlayerMovedEvent>([]));

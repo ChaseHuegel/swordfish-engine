@@ -42,3 +42,13 @@
     "wb:truss",
     "wb:vent",
 ]
+
+"item.wearable" = []
+"item.wearable.helmet" = []
+"item.wearable.torso" = []
+"item.wearable.legs" = []
+"item.wearable.head" = []
+"item.wearable.suit" = []
+"item.wearable.o2" = []
+"item.augment" = []
+"item.fuel" = []

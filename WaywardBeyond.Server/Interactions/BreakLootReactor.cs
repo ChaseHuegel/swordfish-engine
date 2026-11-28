@@ -41,9 +41,12 @@ public sealed class BreakLootReactor(IBrickDatabase brickDatabase) : IInteractio
             return InteractionDecision.Continue;
         }
 
-        InventoryComponent updated = inventory;
-        updated.Add(new ItemData(broken.Value.ID, 1, DEFAULT_STACK_SIZE));
-        context.Store.AddOrUpdate(context.Player, updated);
+        InventoryComponent updated = inventory.Clone();
+        if (updated.Add(new ItemData(broken.Value.ID, 1, DEFAULT_STACK_SIZE)))
+        {
+            context.Store.AddOrUpdate(context.Player, updated);
+        }
+
         return InteractionDecision.Continue;
     }
 }

@@ -1,0 +1,60 @@
+# Default keyed inventory slot group schemas.
+
+[[SlotGroups]]
+ID = "wb:hotbar"
+Capacity = 9
+
+[[SlotGroups]]
+ID = "wb:backpack"
+Capacity = 36
+
+[[SlotGroups]]
+ID = "wb:wearables"
+Capacity = 6
+AllowedTags = ["item.wearable"]
+
+[[SlotGroups.Slots]]
+Index = 0
+AllowedTags = ["item.wearable.helmet"]
+
+[[SlotGroups.Slots]]
+Index = 1
+AllowedTags = ["item.wearable.torso"]
+
+[[SlotGroups.Slots]]
+Index = 2
+AllowedTags = ["item.wearable.legs"]
+
+[[SlotGroups.Slots]]
+Index = 3
+AllowedTags = ["item.wearable.head"]
+
+[[SlotGroups.Slots]]
+Index = 4
+AllowedTags = ["item.wearable.suit"]
+
+[[SlotGroups.Slots]]
+Index = 5
+AllowedTags = ["item.wearable.o2"]
+
+[[SlotGroups]]
+ID = "wb:augments"
+Capacity = 5
+AllowedTags = ["item.augment"]
+
+[[SlotGroups]]
+ID = "wb:input"
+Capacity = 1
+
+[[SlotGroups]]
+ID = "wb:output"
+Capacity = 1
+
+[[SlotGroups]]
+ID = "wb:fuel"
+Capacity = 1
+AllowedTags = ["item.fuel"]
+
+[[SlotGroups]]
+ID = "wb:cargo"
+Capacity = 27

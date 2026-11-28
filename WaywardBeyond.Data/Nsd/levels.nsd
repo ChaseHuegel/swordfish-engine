@@ -71,7 +71,7 @@ message CharacterState
     ulong CharacterUuid = 0;
     string Name = 1;
     string Body = 2;
-    ItemData[]? Inventory = 3;
+    KeyedSlotEntry[]? Inventory = 3;
     int ActiveInventorySlot = 4;
     GameMode GameMode = 5;
     Statistic[]? Statistics = 6;

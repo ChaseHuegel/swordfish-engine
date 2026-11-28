@@ -210,6 +210,11 @@ public sealed class AssetScaffolder
                 "ItemId = \"\"\n" +
                 "Count  = 1\n",
 
+            AssetKind.SlotGroup =>
+                "[[SlotGroups]]\n" +
+                $"ID       = {qId}\n" +
+                "Capacity = 1\n",
+
             _ => null
         };
     }
@@ -256,6 +261,11 @@ public sealed class AssetScaffolder
                 new("DurationSeconds", "2.0"),
                 new("PowerKw", "0.0"),
                 new("Priority", "0")
+            ]),
+            AssetKind.SlotGroup => ("SlotGroups",
+            [
+                new("ID", qId),
+                new("Capacity", "1")
             ]),
             _ => (null, null)
         };

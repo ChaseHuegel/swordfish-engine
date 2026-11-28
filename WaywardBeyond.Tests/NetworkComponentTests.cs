@@ -14,6 +14,9 @@ namespace WaywardBeyond.Tests;
 /// </summary>
 public class NetworkComponentTests
 {
+    private static readonly SlotId HotbarSlot0 = new(SlotGroups.HOTBAR, 0);
+    private static readonly SlotId HotbarSlot1 = new(SlotGroups.HOTBAR, 1);
+
     [Fact]
     public void CreateResetsTheConsumedSequenceWatermarks()
     {
@@ -60,7 +63,7 @@ public class NetworkComponentTests
         system.Tick(1f, store);
 
         Assert.True(store.TryGet(entity, out InventoryComponent inventory));
-        Assert.Equal("rock", inventory.Contents![1].ID);
+        Assert.Equal("rock", inventory.Get(in HotbarSlot1).ID);
     }
 
     [Fact]
@@ -80,39 +83,29 @@ public class NetworkComponentTests
         system.Tick(1f, store);
 
         Assert.True(store.TryGet(entity, out InventoryComponent inventory));
-        Assert.Equal("rock", inventory.Contents![0].ID);
-        Assert.True(inventory.Contents[1].IsEmpty());
+        Assert.Equal("rock", inventory.Get(in HotbarSlot0).ID);
+        Assert.True(inventory.Get(in HotbarSlot1).IsEmpty());
     }
 
     private static void StageMove(DataStore store, int entity, uint sequence)
     {
         Assert.True(store.TryGet(entity, out NetworkComponent net));
 
-        var op = new SlotMoveOp
-        {
-            Mode = SlotMoveOpMode.Exact,
-            FromSlot = 0,
-            ToSlot = 1,
-        };
+        var op = new TransferOp(0UL, HotbarSlot0, 0UL, HotbarSlot1, TransferMode.Exact, null);
         net.StagedInventoryOps!.Stage(sequence, in op);
     }
 
     private static InventoryComponent StackedInventory()
     {
-        var inventory = new InventoryComponent(2);
-        inventory.Contents![0] = new ItemData("rock", 1, 10);
+        var inventory = InventoryComponent.Create(new SlotGroupDescriptor(SlotGroups.HOTBAR, 2));
+        inventory.Set(in HotbarSlot0, new ItemData("rock", 1, 10));
         return inventory;
     }
 
     private static NetworkComponent SessionWithMove(uint sequence)
     {
         NetworkComponent net = NetworkComponent.Create();
-        var op = new SlotMoveOp
-        {
-            Mode = SlotMoveOpMode.Exact,
-            FromSlot = 0,
-            ToSlot = 1,
-        };
+        var op = new TransferOp(0UL, HotbarSlot0, 0UL, HotbarSlot1, TransferMode.Exact, null);
         net.StagedInventoryOps!.Stage(sequence, in op);
         return net;
     }

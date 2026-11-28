@@ -38,8 +38,8 @@ public class SprayerToolTests
         Assert.NotNull(drill.Value.Tool);
         Assert.Equal(ToolType.Drill, drill.Value.Tool!.Value.Type);
 
-        Assert.Contains(PlayerInitialInventory.StarterInventory(GameMode.Creative), item => item.ID == "wb:sprayer");
-        Assert.Contains(PlayerInitialInventory.StarterInventory(GameMode.Creative), item => item.ID == "wb:drill");
+        Assert.Contains(PlayerInitialInventory.StarterInventory(GameMode.Creative), entry => entry.Item.ID == "wb:sprayer");
+        Assert.Contains(PlayerInitialInventory.StarterInventory(GameMode.Creative), entry => entry.Item.ID == "wb:drill");
     }
 
     [Fact]

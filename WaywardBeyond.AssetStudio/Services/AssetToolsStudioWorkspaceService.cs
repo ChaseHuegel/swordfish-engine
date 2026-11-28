@@ -1243,14 +1243,14 @@ public sealed class AssetToolsStudioWorkspaceService : IStudioWorkspaceService
             return new StudioOperationResult(false, "No workspace is open.");
         }
 
-        var primaryRoot = _currentWorkspace.GetPrimaryWritableRoot();
-        if (!primaryRoot.Success)
+        var relative = request.TargetRelativeFile.Trim().TrimStart('/', '\\');
+        var targetRoot = ResolveCreateTargetRoot(_currentWorkspace, request, relative);
+        if (!targetRoot.Success)
         {
-            return new StudioOperationResult(false, primaryRoot.Message ?? "No writable workspace root is available.");
+            return new StudioOperationResult(false, targetRoot.Message ?? "No writable workspace root is available.");
         }
 
-        var relative = request.TargetRelativeFile.Trim().TrimStart('/', '\\');
-        var fullPath = Path.GetFullPath(Path.Combine(primaryRoot.Value.RootDirectory, relative));
+        var fullPath = Path.GetFullPath(Path.Combine(targetRoot.Value.RootDirectory, relative));
         var toolsKind = AssetSeedProjector.ToToolsAssetKind(request.Kind);
 
         ToolsDocuments.TomlDocument doc;
@@ -1299,6 +1299,46 @@ public sealed class AssetToolsStudioWorkspaceService : IStudioWorkspaceService
         RecordStudioFileWrite(fullPath);
         ReloadCurrentWorkspaceFromDisk();
         return new StudioOperationResult(true, $"Created {request.Kind} '{request.AssetId}' in {relative}.", fullPath);
+    }
+
+    private static Result<ToolsWorkspace.WorkspaceRoot> ResolveCreateTargetRoot(
+        ToolsWorkspace.WorkspaceIndex workspace,
+        NewAssetRequest request,
+        string relative)
+    {
+        if (request.UseExistingFile)
+        {
+            for (var i = workspace.Roots.Count - 1; i >= 0; i--)
+            {
+                var root = workspace.Roots[i];
+                if (!root.IsWritable || !root.IsEnabled)
+                {
+                    continue;
+                }
+
+                var candidate = Path.GetFullPath(Path.Combine(root.RootDirectory, relative));
+                if (File.Exists(candidate))
+                {
+                    return Result<ToolsWorkspace.WorkspaceRoot>.FromSuccess(root);
+                }
+            }
+        }
+
+        if (workspace.Mode == ToolsWorkspace.WorkspaceMode.Repo && request.Kind == AssetKind.SlotGroup)
+        {
+            for (var i = 0; i < workspace.Roots.Count; i++)
+            {
+                var root = workspace.Roots[i];
+                if (root.IsWritable
+                    && root.IsEnabled
+                    && string.Equals(root.Id, "waywardbeyond.items", StringComparison.OrdinalIgnoreCase))
+                {
+                    return Result<ToolsWorkspace.WorkspaceRoot>.FromSuccess(root);
+                }
+            }
+        }
+
+        return workspace.GetPrimaryWritableRoot();
     }
 
     /// <inheritdoc/>
@@ -1508,6 +1548,7 @@ public sealed class AssetToolsStudioWorkspaceService : IStudioWorkspaceService
             AssetKind.Item => "items",
             AssetKind.Paint => "paints",
             AssetKind.Recipe => "recipes",
+            AssetKind.SlotGroup => "inventory",
             AssetKind.Skill => "skills",
             AssetKind.Body => "bodies",
             AssetKind.Material => "materials",
@@ -2035,6 +2076,41 @@ public sealed class AssetToolsStudioWorkspaceService : IStudioWorkspaceService
                         if (!string.IsNullOrWhiteSpace(itemId))
                         {
                             extraTokens.Add(itemId);
+                        }
+                    }
+                }
+            }
+            else if (asset.AuthoritativeDefinition is SlotGroupDefinition slotGroupDef)
+            {
+                if (slotGroupDef.AllowedTags != null)
+                {
+                    for (var i = 0; i < slotGroupDef.AllowedTags.Count; i++)
+                    {
+                        var tag = slotGroupDef.AllowedTags[i]?.Trim();
+                        if (!string.IsNullOrWhiteSpace(tag))
+                        {
+                            extraTokens.Add(tag);
+                        }
+                    }
+                }
+
+                if (slotGroupDef.Slots != null)
+                {
+                    for (var s = 0; s < slotGroupDef.Slots.Count; s++)
+                    {
+                        var slotTags = slotGroupDef.Slots[s].AllowedTags;
+                        if (slotTags == null)
+                        {
+                            continue;
+                        }
+
+                        for (var t = 0; t < slotTags.Count; t++)
+                        {
+                            var tag = slotTags[t]?.Trim();
+                            if (!string.IsNullOrWhiteSpace(tag))
+                            {
+                                extraTokens.Add(tag);
+                            }
                         }
                     }
                 }

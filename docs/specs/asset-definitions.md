@@ -322,6 +322,28 @@ Particle effect TOML definitions load through `ParticleEffectDatabase`. See
 [particles](particles.md) for the schema, color decoding, blend modes, and
 simulation limits.
 
+## Inventory slot groups (`assets/inventory/*.toml`)
+
+Slot group schemas live in `WaywardBeyond.Items/assets/inventory/` and load through
+`SlotGroupSchemaDatabase` (`WaywardBeyond.Data/Inventory/SlotGroupSchemaDatabase.cs:14`),
+registered via `DataComposition.RegisterDataServices` (`WaywardBeyond.Data/DataComposition.cs:23`).
+Schema structs live in `SlotGroupDefinitions.cs`, `SlotGroupDefinition.cs`, and
+`SlotFilterDefinition.cs`. The loaded immutable asset is `SlotGroupSchema`
+(`WaywardBeyond.Data/Inventory/SlotGroupSchema.cs:8`).
+
+Each row is a `[[SlotGroups]]` table with optional `[[SlotGroups.Slots]]` per-slot
+filter overrides:
+
+| Field | Type | Notes |
+|---|---|---|
+| `ID` | string | unique namespaced slot group identifier (e.g. `wb:wearables`) |
+| `Capacity` | int | default slot count for the group (`>= 0`) |
+| `AllowedTags` | string[]? | optional invariant item tag keys permitted across the group |
+| `Slots` | `[[SlotGroups.Slots]]` | optional per-slot overrides with `Index` (`>= 0`) and `AllowedTags` |
+
+See [networking-inventory](networking-inventory.md) for group IDs, filter enforcement,
+and transfer resolution.
+
 ## Recipes (`assets/recipes/*.toml`)
 
 Recipes live in the shared `WaywardBeyond.Recipes` module. The module loads
@@ -460,6 +482,7 @@ bits. See [seed-phrases](seed-phrases.md).
 - `WaywardBeyond.Bricks/{BrickDefinitions,BrickDefinition,BrickTags,BrickTextures,BrickAlpha,BrickColliderDefinition,BrickColliderShape,BrickColliders}.cs`
 - `WaywardBeyond.Bricks/{Brick,Srgb}.cs`
 - `WaywardBeyond.Voxels/VoxelCollision.cs`
+- `WaywardBeyond.Data/Inventory/{ISlotGroupSchemaDatabase,SlotGroupSchemaDatabase,SlotGroupSchema,SlotGroupDefinitions,SlotGroupDefinition,SlotFilterDefinition,SlotGroups}.cs`
 - `WaywardBeyond.Recipes/{RecipeDefinitions,RecipeDefinition,RecipeIngredientDefinition,RecipeOutputDefinition,RecipeMode,Recipe,RecipeIngredient,RecipeOutput,IRecipeDatabase,RecipeDatabase,Injector}.cs`
 - `WaywardBeyond.Skills/{SkillDefinitions,SkillDefinition,XPSource,CraftXpSourceSet,Skill,SkillDatabase,SkillProgress}.cs`
 - `WaywardBeyond.Client/Skills/SkillIconDatabase.cs`

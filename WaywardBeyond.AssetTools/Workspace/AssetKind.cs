@@ -53,5 +53,10 @@ public enum AssetKind
     /// <summary>
     ///     Recipe definition under <c>recipes/</c>.
     /// </summary>
-    Recipe = 9
+    Recipe = 9,
+
+    /// <summary>
+    ///     Inventory slot group schema definition under <c>inventory/</c>.
+    /// </summary>
+    SlotGroup = 10
 }

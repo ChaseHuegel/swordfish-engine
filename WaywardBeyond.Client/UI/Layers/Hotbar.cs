@@ -100,13 +100,9 @@ internal sealed class Hotbar
         var slots = new List<ItemSlotState>(SLOT_COUNT);
         for (var slotIndex = 0; slotIndex < SLOT_COUNT; slotIndex++)
         {
-            ItemData itemStack = default;
-            if (inventory.Contents != null && slotIndex < inventory.Contents.Length)
-            {
-                itemStack = inventory.Contents[slotIndex];
-            }
+            ItemData itemStack = inventory.Get(new SlotId(SlotGroups.HOTBAR, slotIndex));
 
-            var hasItem = itemStack.Count > 0 && itemStack.ID != null;
+            bool hasItem = !itemStack.IsEmpty();
             Material? icon = hasItem ? _itemIcons.Get(itemStack.ID!) : null;
             slots.Add(new ItemSlotState(
                 icon!,

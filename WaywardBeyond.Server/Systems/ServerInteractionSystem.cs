@@ -418,25 +418,17 @@ public sealed class ServerInteractionSystem(
 
     private static void TryGetHeldEquipment(DataStore store, int player, out int activeSlot, out string? heldItemId)
     {
-        if (!store.TryGet(player, out EquipmentComponent equipment) ||
-            !store.TryGet(player, out InventoryComponent inventory) ||
-            inventory.Contents == null)
+        if (!store.TryGet(player, out EquipmentComponent equipment)
+            || !store.TryGet(player, out InventoryComponent inventory))
         {
             activeSlot = -1;
             heldItemId = null;
             return;
         }
 
-        int slot = equipment.ActiveInventorySlot;
-        activeSlot = slot;
-        if (slot < 0 || slot >= inventory.Contents.Length)
-        {
-            heldItemId = null;
-            return;
-        }
-
-        ItemData item = inventory.Contents[slot];
-        heldItemId = item.Count > 0 && !string.IsNullOrEmpty(item.ID) ? item.ID : null;
+        activeSlot = equipment.ActiveInventorySlot;
+        ItemData item = inventory.Get(new SlotId(SlotGroups.HOTBAR, activeSlot));
+        heldItemId = item.IsEmpty() ? null : item.ID;
     }
 
     /// <summary>Snapshot of an active server timed interaction session for diagnostics and testing.</summary>

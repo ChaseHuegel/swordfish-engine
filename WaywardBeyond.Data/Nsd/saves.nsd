@@ -67,7 +67,14 @@ message Character
     
     Statistic[]? Statistics = 15;
     
-    ItemData[]? Inventory = 20;
+    KeyedSlotEntry[]? Inventory = 20;
+}
+
+message KeyedSlotEntry
+{
+    string GroupId = 0;
+    int LocalIndex = 1;
+    ItemData Item = 2;
 }
 
 message ItemData

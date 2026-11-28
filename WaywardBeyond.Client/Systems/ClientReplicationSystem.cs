@@ -204,7 +204,7 @@ internal sealed class ClientReplicationSystem : IEntitySystem
                 {
                     Entity = entityUuid,
                     SequenceNumber = op.SequenceNumber,
-                    SlotMove = op.SlotMove,
+                    Transfer = op.Transfer,
                 });
                 if (payload.Length > 0)
                 {

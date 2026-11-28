@@ -1120,16 +1120,17 @@ internal sealed class RegionToolService : IEntryPoint, IEntitySystem
     private void SelectProjectorSlot(DataStore store)
     {
         Result<InventoryComponent> invResult = _playerData.GetInventory(store);
-        if (!invResult.Success || invResult.Value.Contents == null)
+        if (!invResult.Success)
         {
             return;
         }
 
-        ItemData[] contents = invResult.Value.Contents;
-        int limit = Math.Min(9, contents.Length);
-        for (var i = 0; i < limit; i++)
+        InventoryComponent inventory = invResult.Value;
+        int capacity = inventory.GetGroupCapacity(SlotGroups.HOTBAR);
+        for (var i = 0; i < capacity; i++)
         {
-            if (contents[i].Count > 0 && string.Equals(contents[i].ID, "wb:projector", StringComparison.Ordinal))
+            ItemData item = inventory.Get(new SlotId(SlotGroups.HOTBAR, i));
+            if (!item.IsEmpty() && string.Equals(item.ID, "wb:projector", StringComparison.Ordinal))
             {
                 _playerData.SetActiveSlot(store, i);
                 return;

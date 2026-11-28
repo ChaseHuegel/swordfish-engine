@@ -302,7 +302,7 @@ public class ControlHintsTests
 
             int player = _world.DataStore.Alloc();
             _world.DataStore.AddOrUpdate(player, new PlayerComponent());
-            _world.DataStore.AddOrUpdate(player, new InventoryComponent(45));
+            _world.DataStore.AddOrUpdate(player, InventoryComponent.CreatePlayer());
             _world.DataStore.AddOrUpdate(player, new EquipmentComponent { ActiveInventorySlot = 0 });
             _world.DataStore.AddOrUpdate(player, new PendingInventoryComponent());
 
@@ -374,7 +374,7 @@ public class ControlHintsTests
         {
             _playerData.MutateInventory(_world.DataStore, (ref InventoryComponent inventory) =>
             {
-                inventory.Contents![0] = new ItemData(itemId, 1, 64);
+                inventory.Set(new SlotId(SlotGroups.HOTBAR, 0), new ItemData(itemId, 1, 64));
             });
         }
 

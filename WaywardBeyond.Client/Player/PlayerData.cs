@@ -2,68 +2,84 @@
 using Swordfish.Library.Collections;
 using Swordfish.Library.Util;
 using WaywardBeyond.Client.Components;
-using WaywardBeyond.Items;
 using WaywardBeyond.Data;
 using WaywardBeyond.Data.Components;
+using WaywardBeyond.Data.Localization;
 using WaywardBeyond.Gameplay.Interactions;
 using WaywardBeyond.Gameplay.Networking;
+using WaywardBeyond.Items;
 
 namespace WaywardBeyond.Client.Player;
 
-internal sealed class PlayerData(in IAssetDatabase<Item> itemDatabase)
+internal sealed class PlayerData(
+    in IAssetDatabase<Item> itemDatabase,
+    ISlotGroupSchemaDatabase? schemas = null,
+    ILocalizedTagsDatabase? tagDatabase = null
+)
 {
     private readonly IAssetDatabase<Item> _itemDatabase = itemDatabase;
-    
+    private readonly InventoryValidationContext _validationContext = new(schemas, tagDatabase?.Invariant, itemDatabase);
+
+    /// <summary>Shared validation context used by local inventory prediction and UI distribution previews.</summary>
+    public InventoryValidationContext ValidationContext => _validationContext;
+
     public Result<InventoryComponent> GetInventory(DataStore store)
     {
         InventoryComponent value = default;
-        
+
         store.Query<PlayerComponent, InventoryComponent>(0f, InventoryQuery);
         void InventoryQuery(float delta, DataStore _, int entity, in PlayerComponent player, in InventoryComponent inventory)
         {
             value = inventory;
         }
-        
+
         return Result<InventoryComponent>.FromSuccess(value);
     }
 
     public Result<int> GetActiveSlot(DataStore store)
     {
         var slot = 0;
-        
+
         store.Query<PlayerComponent, EquipmentComponent>(0f, EquipmentQuery);
         void EquipmentQuery(float delta, DataStore _, int entity, in PlayerComponent player, in EquipmentComponent equipment)
         {
             slot = equipment.ActiveInventorySlot;
         }
-        
+
         return Result<int>.FromSuccess(slot);
     }
-    
+
     public Result SetActiveSlot(DataStore store, int slot)
     {
         store.QueryRef<PlayerComponent, EquipmentComponent>(0f, EquipmentQuery);
-        void EquipmentQuery(float delta, DataStore _, int entity, ref Ref<PlayerComponent> player, ref Ref<EquipmentComponent> equipment)
+        void EquipmentQuery(float delta, DataStore dataStore, int entity, ref Ref<PlayerComponent> player, ref Ref<EquipmentComponent> equipment)
         {
-            equipment.Write.ActiveInventorySlot = InventoryComponent.ClampSlot(slot);
+            int clamped = dataStore.TryGet(entity, out InventoryComponent inventory) && inventory.HasGroup(SlotGroups.HOTBAR)
+                ? inventory.ClampHotbarSlot(slot)
+                : InventoryComponent.ClampHotbarSlot(slot);
+
+            if (equipment.Read.ActiveInventorySlot != clamped)
+            {
+                equipment.Write.ActiveInventorySlot = clamped;
+            }
         }
-        
+
         return Result.FromSuccess();
     }
-    
+
     public Result<ItemSlot> GetMainHand(DataStore store)
     {
         Result<ItemSlot> result = default;
-        
+
         store.Query<PlayerComponent, InventoryComponent>(delta: 0f, QueryPlayerInventory);
-        void QueryPlayerInventory(float delta, DataStore store, int entity, in PlayerComponent player, in InventoryComponent inventory)
+        void QueryPlayerInventory(float delta, DataStore dataStore, int entity, in PlayerComponent player, in InventoryComponent inventory)
         {
-            result = GetMainHand(store, entity, inventory);
+            result = GetMainHand(dataStore, entity, inventory);
         }
-        
+
         return result;
     }
-    
+
     public Result<ItemSlot> GetMainHand(DataStore store, int entity)
     {
         if (!store.TryGet(entity, out InventoryComponent inventory))
@@ -80,61 +96,89 @@ internal sealed class PlayerData(in IAssetDatabase<Item> itemDatabase)
         {
             return Result<ItemSlot>.FromFailure($"No equipment found for player entity: {entity}");
         }
-        
-        ItemData itemStack = equipment.ActiveInventorySlot >= 0 && equipment.ActiveInventorySlot < inventory.Contents.Length
-            ? inventory.Contents[equipment.ActiveInventorySlot]
-            : default;
 
-        if (itemStack.Count <= 0)
+        ItemData itemStack = inventory.Get(new SlotId(SlotGroups.HOTBAR, equipment.ActiveInventorySlot));
+        if (itemStack.IsEmpty())
         {
             return Result<ItemSlot>.FromFailure(message: null);
         }
-        
+
         Result<Item> itemResult = _itemDatabase.Get(itemStack.ID);
         if (!itemResult.Success)
         {
             return new Result<ItemSlot>(success: false, value: default, itemResult.Message, itemResult.Exception);
         }
-        
+
         var itemSlot = new ItemSlot(equipment.ActiveInventorySlot, itemResult);
         return Result<ItemSlot>.FromSuccess(itemSlot);
     }
 
     /// <summary>
-    /// Applies a move op as local prediction via the shared resolver, then stages it for upstream
-    /// replication. This is the single supported client entry point for changing a server-owned
-    /// inventory: the prediction keeps presentation instant, and the staged op drives the server's
-    /// authoritative apply and echo.
+    /// Applies a unified transfer op locally when targeting only the player inventory, then stages
+    /// it for upstream replication.
     /// </summary>
-    public void ApplyMove(DataStore store, in SlotMoveOp op)
+    public void ApplyMove(DataStore store, in TransferOp op)
     {
-        SlotMoveOp move = op;
-        MutateInventory(store, (ref InventoryComponent inventory) => InventoryResolver.Apply(ref inventory, move));
-        StageInventoryOp(store, move);
+        var predict = new PredictTransferAction(in op, in _validationContext);
+        store.QueryRef<PlayerComponent, InventoryComponent, PredictTransferAction>(0f, ref predict);
+        StageInventoryOp(store, in op);
     }
 
     public delegate void InventoryMutation(ref InventoryComponent inventory);
 
     public void MutateInventory(DataStore store, InventoryMutation mutation)
     {
-        store.QueryRef<PlayerComponent, InventoryComponent>(0f, (float delta, DataStore dataStore, int entity, ref Ref<PlayerComponent> player, ref Ref<InventoryComponent> inventory) =>
+        store.QueryRef<PlayerComponent, InventoryComponent>(0f, (float _, DataStore _, int _, ref Ref<PlayerComponent> _, ref Ref<InventoryComponent> inventory) =>
         {
-            mutation(ref inventory.Write);
+            InventoryComponent updated = inventory.Read.Clone();
+            mutation(ref updated);
+            inventory.Write = updated;
         });
     }
 
     /// <summary>
-    /// Stages an inventory move op for upstream replication. The op's sequence comes from the player's
-    /// <see cref="PendingInventoryComponent"/> so retransmits dedupe server-side.
+    /// Stages a unified inventory transfer op for upstream replication using
+    /// <see cref="PendingInventoryComponent"/> sequence numbering.
     /// </summary>
-    public void StageInventoryOp(DataStore store, in SlotMoveOp op)
+    public void StageInventoryOp(DataStore store, in TransferOp op)
     {
-        SlotMoveOp move = op;
-        store.QueryRef<PlayerComponent, PendingInventoryComponent>(0f,
-            (float _, DataStore dataStore, int _, ref Ref<PlayerComponent> _, ref Ref<PendingInventoryComponent> pending) =>
+        var stage = new StageTransferAction(in op);
+        store.QueryRef<PlayerComponent, PendingInventoryComponent, StageTransferAction>(0f, ref stage);
+    }
+
+    private struct PredictTransferAction(in TransferOp transfer, in InventoryValidationContext validationContext)
+        : IForEachRef<PlayerComponent, InventoryComponent>
+    {
+        private readonly TransferOp _transfer = transfer;
+        private readonly InventoryValidationContext _validationContext = validationContext;
+
+        public void Execute(float delta, DataStore store, int entity, ref Ref<PlayerComponent> player, ref Ref<InventoryComponent> inventory)
+        {
+            ulong selfUuid = store.GetUuid(entity).ToValue();
+            bool isSelf = (_transfer.FromContainer == 0UL || _transfer.FromContainer == selfUuid)
+                && (_transfer.ToContainer == 0UL || _transfer.ToContainer == selfUuid);
+            if (!isSelf)
             {
-                ref PendingInventoryComponent pendingValue = ref pending.Write;
-                pendingValue.Outbound.Stage(++pendingValue.NextSequence, move);
-            });
+                return;
+            }
+
+            var normalized = new TransferOp(0UL, _transfer.FromSlot, 0UL, _transfer.ToSlot, _transfer.Mode, _transfer.Count);
+            InventoryComponent updated = inventory.Read.Clone();
+            if (InventoryResolver.Apply(ref updated, in normalized, in _validationContext))
+            {
+                inventory.Write = updated;
+            }
+        }
+    }
+
+    private struct StageTransferAction(in TransferOp transfer) : IForEachRef<PlayerComponent, PendingInventoryComponent>
+    {
+        private readonly TransferOp _transfer = transfer;
+
+        public void Execute(float delta, DataStore store, int entity, ref Ref<PlayerComponent> player, ref Ref<PendingInventoryComponent> pending)
+        {
+            ref PendingInventoryComponent pendingValue = ref pending.Write;
+            pendingValue.Outbound.Stage(++pendingValue.NextSequence, in _transfer);
+        }
     }
 }

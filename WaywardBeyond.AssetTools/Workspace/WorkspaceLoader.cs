@@ -3,6 +3,7 @@ using Swordfish.Library.Util;
 using WaywardBeyond.AssetTools.Documents;
 using WaywardBeyond.Bodies;
 using WaywardBeyond.Bricks;
+using WaywardBeyond.Data;
 using WaywardBeyond.Items;
 using WaywardBeyond.Recipes;
 using WaywardBeyond.Skills;
@@ -423,6 +424,12 @@ public sealed class WorkspaceLoader
         IndexArrayAssetDirectory<RecipeDefinitions, RecipeDefinition>(
             in root, "recipes", "Recipes", AssetKind.Recipe,
             static defs => defs.Recipes,
+            static def => (def.ID ?? string.Empty, def.ID ?? string.Empty),
+            state);
+
+        IndexArrayAssetDirectory<SlotGroupDefinitions, SlotGroupDefinition>(
+            in root, "inventory", "SlotGroups", AssetKind.SlotGroup,
+            static defs => defs.SlotGroups,
             static def => (def.ID ?? string.Empty, def.ID ?? string.Empty),
             state);
 
@@ -863,6 +870,10 @@ public sealed class WorkspaceLoader
                     ExtractRecipeReferences(in asset, in recipe, state.AllReferences);
                     break;
 
+                case SlotGroupDefinition slotGroup:
+                    ExtractSlotGroupReferences(in asset, in slotGroup, state.AllReferences);
+                    break;
+
                 case MaterialDefinition material:
                     ExtractMaterialReferences(in asset, in material, state.AllReferences);
                     break;
@@ -1054,6 +1065,8 @@ public sealed class WorkspaceLoader
                 {
                     AddRefIfPresent(refs, in asset, $"Inputs[{i}].ItemId", trimmed, "item", isInformational: false);
                 }
+
+                AddRefIfPresent(refs, in asset, $"Inputs[{i}].SlotGroup", recipe.Inputs[i].SlotGroup?.Trim(), "slot_group", isInformational: true);
             }
         }
 
@@ -1062,6 +1075,34 @@ public sealed class WorkspaceLoader
             for (int i = 0; i < recipe.Outputs.Count; i++)
             {
                 AddRefIfPresent(refs, in asset, $"Outputs[{i}].ItemId", recipe.Outputs[i].ItemId?.Trim(), "item", isInformational: false);
+            }
+        }
+    }
+
+    private static void ExtractSlotGroupReferences(in IndexedAsset asset, in SlotGroupDefinition slotGroup, List<InboundReference> refs)
+    {
+        if (slotGroup.AllowedTags != null)
+        {
+            for (int i = 0; i < slotGroup.AllowedTags.Count; i++)
+            {
+                AddRefIfPresent(refs, in asset, $"AllowedTags[{i}]", slotGroup.AllowedTags[i]?.Trim(), "tag", isInformational: false);
+            }
+        }
+
+        if (slotGroup.Slots != null)
+        {
+            for (int s = 0; s < slotGroup.Slots.Count; s++)
+            {
+                List<string>? slotTags = slotGroup.Slots[s].AllowedTags;
+                if (slotTags == null)
+                {
+                    continue;
+                }
+
+                for (int t = 0; t < slotTags.Count; t++)
+                {
+                    AddRefIfPresent(refs, in asset, $"Slots[{s}].AllowedTags[{t}]", slotTags[t]?.Trim(), "tag", isInformational: false);
+                }
             }
         }
     }

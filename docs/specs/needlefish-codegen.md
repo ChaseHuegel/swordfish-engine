@@ -86,8 +86,13 @@ The schema namespace becomes the generated C# namespace.
 | `network.nsd` | `WaywardBeyond.Data.Networking` |
 
 The hand-written component partials live in
-`WaywardBeyond.Data/Components`. Schemas may declare enums; `network.nsd`
-declares `NotificationType`, which generates into the schema namespace.
+`WaywardBeyond.Data/Components`. Runtime partials that maintain non-serialized
+caches, such as `InventoryComponent` (`WaywardBeyond.Data/Components/InventoryComponent.cs:11`),
+apply `[StructLayout(LayoutKind.Auto)]` to prevent field-ordering warnings and
+hydrate caches in `InventoryCodec.Apply` (`WaywardBeyond.Networking/Codecs/InventoryCodec.cs:20-34`)
+after deserialization. Schemas may declare enums. `network.nsd`
+declares `NotificationType` and `components.nsd` declares `TransferMode`,
+generating each into its schema namespace.
 
 Wire identity lives in `WaywardBeyond.Networking` (`NetworkRegistry`,
 `NetworkDirection`, `IPayloadCodec`). Per-session staging state lives in
@@ -117,6 +122,6 @@ Do not edit generated source. The source does not exist in the tree.
 ## Source of truth
 
 - Generator wiring: `WaywardBeyond.Data/WaywardBeyond.Data.csproj`
-- Schemas: `WaywardBeyond.Data/Nsd/`
-- Generated component partials: `WaywardBeyond.Data/Components/`
+- Schemas: `WaywardBeyond.Data/Nsd/` (`saves.nsd`, `levels.nsd`, `components.nsd`, `network.nsd`, `voxels.nsd`, `blueprints.nsd`)
+- Component partials and runtime hydration: `WaywardBeyond.Data/Components/` and `WaywardBeyond.Networking/Codecs/InventoryCodec.cs:25`
 - Wire identity: `WaywardBeyond.Networking/Registry/`

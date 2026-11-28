@@ -164,9 +164,9 @@ union shapes, op modes, and resolution rules live in
 ```nsd
 message InventoryEvent
 {
-    ulong Entity;            // player mirror address (dedupe/routing)
-    uint  SequenceNumber;
-    SlotMoveOp? SlotMove;    // op payload; future ops add their own nullable sub-message
+    ulong Entity              = 0;
+    uint  SequenceNumber      = 1;
+    TransferOp? Transfer      = 2;    // keyed intra-inventory or cross-container transfer
 }
 ```
 
@@ -177,7 +177,7 @@ interaction context and the body view:
 
 ```nsd
 message EquipmentComponent   { int ActiveInventorySlot = 0; }
-message InventoryComponent   { WaywardBeyond.Data.ItemData[] Contents = 0; }
+message InventoryComponent   { SlotGroupDescriptor[] Groups = 0; WaywardBeyond.Data.KeyedSlotEntry[] Slots = 1; }
 message GameModeComponent    { int Value = 0; }
 message BodyViewComponent    { string Body = 0; }
 message IdentifierMessage    { string Name; string Tag; }
@@ -311,8 +311,8 @@ message CharacterState
 {
     ulong CharacterUuid = 0;
     string Name = 1;
-    int Body = 2;
-    ItemData[]? Inventory = 3;
+    string Body = 2;
+    KeyedSlotEntry[]? Inventory = 3;
     int ActiveInventorySlot = 4;
     GameMode GameMode = 5;
     Statistic[]? Statistics = 6;   // skill XP seed; server keeps only what matches a skill id

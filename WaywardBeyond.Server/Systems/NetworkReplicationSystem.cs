@@ -703,10 +703,10 @@ public sealed class NetworkReplicationSystem
 
         if (info.Type == typeof(InventoryEvent)
             && store.TryGet(sessionEntity, out InventoryEvent inventoryEvent)
-            && inventoryEvent.SlotMove != null)
+            && inventoryEvent.Transfer != null)
         {
-            var stage = new StageInventory(inventoryEvent.SequenceNumber, inventoryEvent.SlotMove.Value);
-            store.Query<NetworkComponent, StageInventory>(sessionEntity, 0f, ref stage);
+            var stage = new StageTransferInventory(inventoryEvent.SequenceNumber, inventoryEvent.Transfer.Value);
+            store.Query<NetworkComponent, StageTransferInventory>(sessionEntity, 0f, ref stage);
         }
     }
 
@@ -743,13 +743,13 @@ public sealed class NetworkReplicationSystem
         }
     }
 
-    private struct StageInventory(uint sequenceNumber, in SlotMoveOp slotMove) : IForEach<NetworkComponent>
+    private struct StageTransferInventory(uint sequenceNumber, in TransferOp transfer) : IForEach<NetworkComponent>
     {
-        private readonly SlotMoveOp _slotMove = slotMove;
+        private readonly TransferOp _transfer = transfer;
 
         public void Execute(float delta, DataStore store, int entity, in NetworkComponent net)
         {
-            net.StagedInventoryOps?.Stage(sequenceNumber, in _slotMove);
+            net.StagedInventoryOps?.Stage(sequenceNumber, in _transfer);
         }
     }
 

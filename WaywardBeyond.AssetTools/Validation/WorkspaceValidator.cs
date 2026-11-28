@@ -8,6 +8,7 @@ using WaywardBeyond.AssetTools.Editing;
 using WaywardBeyond.AssetTools.Workspace;
 using WaywardBeyond.Bodies;
 using WaywardBeyond.Bricks;
+using WaywardBeyond.Data;
 using WaywardBeyond.Data.Statistics;
 using WaywardBeyond.Items;
 using WaywardBeyond.Recipes;
@@ -309,6 +310,10 @@ public sealed class WorkspaceValidator
 
                 case RecipeDefinition recipe:
                     ValidateRecipe(workspace, in asset, in recipe, doc, findings);
+                    break;
+
+                case SlotGroupDefinition slotGroup:
+                    ValidateSlotGroup(workspace, in asset, in slotGroup, doc, findings);
                     break;
 
                 case MaterialDefinition material:
@@ -1282,6 +1287,244 @@ public sealed class WorkspaceValidator
                 }
             }
         }
+    }
+
+    private static void ValidateSlotGroup(
+        WorkspaceIndex workspace,
+        in IndexedAsset asset,
+        in SlotGroupDefinition slotGroup,
+        TomlDocument? doc,
+        List<ValidationFinding> findings)
+    {
+        TomlFieldSpan? capacityField = FindEntryField(doc, asset.Provenance.TableIndex, "Capacity");
+        if (slotGroup.Capacity < 0)
+        {
+            AddFieldFinding(
+                findings,
+                "SLOTGROUP001",
+                ValidationSeverity.Broken,
+                in asset,
+                capacityField,
+                "Capacity",
+                $"SlotGroup '{slotGroup.ID}' Capacity ({slotGroup.Capacity}) must be >= 0.");
+        }
+
+        TomlFieldSpan? groupAllowedTagsField = FindEntryField(doc, asset.Provenance.TableIndex, "AllowedTags");
+        ValidateSlotGroupTagList(
+            workspace,
+            in asset,
+            doc,
+            groupAllowedTagsField,
+            fieldPrefix: "AllowedTags",
+            slotGroup.AllowedTags,
+            findings);
+
+        if (slotGroup.Slots == null || slotGroup.Slots.Count == 0)
+        {
+            return;
+        }
+
+        List<TomlTableSpan> slotTables = FindOwnedSlotGroupSubTables(doc, asset.Provenance.TableIndex);
+        HashSet<int> seenIndices = [];
+
+        for (int s = 0; s < slotGroup.Slots.Count; s++)
+        {
+            SlotFilterDefinition slotDef = slotGroup.Slots[s];
+            TomlTableSpan? slotTable = s < slotTables.Count ? slotTables[s] : null;
+            TomlFieldSpan? indexField = null;
+            TomlFieldSpan? slotTagsField = null;
+            if (doc != null && slotTable.HasValue)
+            {
+                Result<TomlFieldSpan> idxRes = doc.GetFieldInTable(slotTable.Value.Index, "Index");
+                if (idxRes.Success)
+                {
+                    indexField = idxRes.Value;
+                }
+
+                Result<TomlFieldSpan> tagsRes = doc.GetFieldInTable(slotTable.Value.Index, "AllowedTags");
+                if (tagsRes.Success)
+                {
+                    slotTagsField = tagsRes.Value;
+                }
+            }
+
+            if (slotDef.Index < 0)
+            {
+                AddFieldFinding(
+                    findings,
+                    "SLOTGROUP001",
+                    ValidationSeverity.Broken,
+                    in asset,
+                    indexField,
+                    $"Slots[{s}].Index",
+                    $"SlotGroup '{slotGroup.ID}' slot override #{s + 1} Index ({slotDef.Index}) must be >= 0.");
+            }
+            else
+            {
+                if (slotGroup.Capacity >= 0 && slotDef.Index >= slotGroup.Capacity)
+                {
+                    AddFieldFinding(
+                        findings,
+                        "SLOTGROUP001",
+                        ValidationSeverity.Broken,
+                        in asset,
+                        indexField,
+                        $"Slots[{s}].Index",
+                        $"SlotGroup '{slotGroup.ID}' slot override Index ({slotDef.Index}) must be < Capacity ({slotGroup.Capacity}).");
+                }
+
+                if (!seenIndices.Add(slotDef.Index))
+                {
+                    AddFieldFinding(
+                        findings,
+                        "SLOTGROUP002",
+                        ValidationSeverity.Broken,
+                        in asset,
+                        indexField,
+                        $"Slots[{s}].Index",
+                        $"SlotGroup '{slotGroup.ID}' defines duplicate slot override Index {slotDef.Index}.");
+                }
+            }
+
+            ValidateSlotGroupTagList(
+                workspace,
+                in asset,
+                doc,
+                slotTagsField,
+                fieldPrefix: $"Slots[{s}].AllowedTags",
+                slotDef.AllowedTags,
+                findings);
+        }
+    }
+
+    private static void ValidateSlotGroupTagList(
+        WorkspaceIndex workspace,
+        in IndexedAsset asset,
+        TomlDocument? doc,
+        TomlFieldSpan? field,
+        string fieldPrefix,
+        List<string>? tags,
+        List<ValidationFinding> findings)
+    {
+        if (tags == null || tags.Count == 0)
+        {
+            return;
+        }
+
+        HashSet<string> seenTags = new(StringComparer.Ordinal);
+        for (int i = 0; i < tags.Count; i++)
+        {
+            string rawTag = tags[i] ?? string.Empty;
+            string tagName = rawTag.Trim();
+            TomlTextSpan? span = GetArrayElementSpan(field, i);
+            int line = span.HasValue ? span.Value.Line : ResolveEntryLine(doc, asset.Provenance.TableIndex);
+            int col = span.HasValue ? span.Value.Column : 1;
+            string fieldLabel = $"{fieldPrefix}[{i}]";
+
+            if (string.IsNullOrEmpty(tagName))
+            {
+                findings.Add(new ValidationFinding(
+                    "SLOTGROUP002",
+                    ValidationSeverity.Broken,
+                    asset.Provenance.ProviderRootId,
+                    asset.Provenance.FilePath,
+                    line,
+                    col,
+                    fieldLabel,
+                    $"SlotGroup '{asset.Id}' {fieldPrefix} entry #{i + 1} cannot be empty.",
+                    FieldSpan: span));
+                continue;
+            }
+
+            if (!seenTags.Add(tagName))
+            {
+                findings.Add(new ValidationFinding(
+                    "TAG001",
+                    ValidationSeverity.Style,
+                    asset.Provenance.ProviderRootId,
+                    asset.Provenance.FilePath,
+                    line,
+                    col,
+                    fieldLabel,
+                    $"Duplicate tag '{tagName}' in SlotGroup '{asset.Id}' {fieldPrefix}.",
+                    FieldSpan: span,
+                    FixKind: span.HasValue ? ValidationFixKind.RemoveArrayElement : ValidationFixKind.None,
+                    IsSafeBulkFix: span.HasValue,
+                    FixDescription: span.HasValue ? "Remove duplicate tag entry" : null));
+            }
+
+            if (workspace.HasTag(tagName, locale: string.Empty))
+            {
+                continue;
+            }
+
+            string? caseMatch = FindInvariantTagCaseInsensitive(workspace, tagName);
+            if (caseMatch != null)
+            {
+                findings.Add(new ValidationFinding(
+                    "PATH001",
+                    ValidationSeverity.CrossPlatform,
+                    asset.Provenance.ProviderRootId,
+                    asset.Provenance.FilePath,
+                    line,
+                    col,
+                    fieldLabel,
+                    $"Invariant tag '{tagName}' differs by case from '{caseMatch}'.",
+                    SuggestedFixValue: caseMatch,
+                    FieldSpan: span,
+                    FixKind: span.HasValue ? ValidationFixKind.ReplaceValue : ValidationFixKind.None,
+                    IsSafeBulkFix: span.HasValue,
+                    FixDescription: span.HasValue ? "Fix path/ID casing" : null));
+                continue;
+            }
+
+            string? suggestedTag = SuggestInvariantTagReference(workspace, tagName, soundTagsOnly: false);
+            findings.Add(new ValidationFinding(
+                "REF001",
+                ValidationSeverity.Broken,
+                asset.Provenance.ProviderRootId,
+                asset.Provenance.FilePath,
+                line,
+                col,
+                fieldLabel,
+                $"Invariant tag '{tagName}' was not found in lang/tags.",
+                SuggestedFixValue: suggestedTag,
+                FieldSpan: span,
+                FixKind: suggestedTag != null && span.HasValue ? ValidationFixKind.ReplaceValue : ValidationFixKind.None,
+                IsSafeBulkFix: false,
+                FixDescription: suggestedTag != null && span.HasValue ? "Replace with closest invariant tag" : null));
+        }
+    }
+
+    private static List<TomlTableSpan> FindOwnedSlotGroupSubTables(TomlDocument? doc, int ownerTableIndex)
+    {
+        List<TomlTableSpan> matches = [];
+        if (doc == null || ownerTableIndex < 0 || ownerTableIndex >= doc.Tables.Count)
+        {
+            return matches;
+        }
+
+        for (int i = ownerTableIndex + 1; i < doc.Tables.Count; i++)
+        {
+            TomlTableSpan next = doc.Tables[i];
+            if (next.IsArrayTable && string.Equals(next.HeaderPath, "SlotGroups", StringComparison.OrdinalIgnoreCase))
+            {
+                break;
+            }
+
+            if (string.Equals(next.HeaderPath, "SlotGroups.Slots", StringComparison.OrdinalIgnoreCase))
+            {
+                matches.Add(next);
+                continue;
+            }
+
+            if (!next.HeaderPath.StartsWith("SlotGroups.", StringComparison.OrdinalIgnoreCase))
+            {
+                break;
+            }
+        }
+
+        return matches;
     }
 
     private static void ValidateMaterial(

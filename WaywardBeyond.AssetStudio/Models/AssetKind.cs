@@ -54,4 +54,9 @@ public enum AssetKind
     ///     Crafting or processing recipe definition.
     /// </summary>
     Recipe,
+
+    /// <summary>
+    ///     Inventory slot group schema and per-slot filter override definition.
+    /// </summary>
+    SlotGroup,
 }

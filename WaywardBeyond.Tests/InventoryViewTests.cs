@@ -503,7 +503,7 @@ public sealed class InventoryViewTests : IDisposable
 
             _player = _world.DataStore.Alloc();
             _world.DataStore.AddOrUpdate(_player, new PlayerComponent());
-            _world.DataStore.AddOrUpdate(_player, new InventoryComponent(SLOT_COUNT));
+            _world.DataStore.AddOrUpdate(_player, InventoryComponent.CreatePlayer());
             _world.DataStore.AddOrUpdate(_player, new EquipmentComponent());
             _world.DataStore.AddOrUpdate(_player, new PendingInventoryComponent());
 
@@ -605,7 +605,7 @@ public sealed class InventoryViewTests : IDisposable
         public ItemData Slot(int slot)
         {
             Assert.True(_world.DataStore.TryGet(_player, out InventoryComponent inventory));
-            return inventory.Contents![slot];
+            return inventory.Get(SlotIdFromPositional(slot));
         }
 
         public bool HasCommand(string id)
@@ -799,8 +799,15 @@ public sealed class InventoryViewTests : IDisposable
         {
             PlayerData.MutateInventory(_world.DataStore, (ref InventoryComponent inventory) =>
             {
-                inventory.Contents![slot] = item;
+                inventory.Set(SlotIdFromPositional(slot), item);
             });
+        }
+
+        private static SlotId SlotIdFromPositional(int slot)
+        {
+            return slot < Hotbar.SLOT_COUNT
+                ? new SlotId(SlotGroups.HOTBAR, slot)
+                : new SlotId(SlotGroups.BACKPACK, slot - Hotbar.SLOT_COUNT);
         }
 
         private static Vector4 FromRgb(byte r, byte g, byte b)
