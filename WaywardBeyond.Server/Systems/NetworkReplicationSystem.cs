@@ -81,7 +81,7 @@ public sealed class NetworkReplicationSystem
     private readonly Dictionary<Uuid, HashSet<int>> _entitiesByViewer = [];
     private readonly Dictionary<Uuid, List<int>> _pendingViewerAttach = [];
     private readonly Dictionary<Uuid, List<ulong>> _pendingViewerDespawns = [];
-    private readonly HashSet<ViewerSubscription> _deliveredViewerEntities = [];
+    private readonly Dictionary<ViewerSubscription, ulong> _deliveredViewerUuids = [];
     private readonly List<ComponentSnapshot> _attachScratch = [];
     private readonly List<ulong> _despawnScratch = [];
     private readonly List<Uuid> _staleViewerClients = [];
@@ -254,9 +254,13 @@ public sealed class NetworkReplicationSystem
         _activeViewerSubscriptionCount = Math.Max(0, _activeViewerSubscriptionCount - 1);
         RemovePendingAttach(clientId, entity);
 
-        if (_deliveredViewerEntities.Remove(new ViewerSubscription(clientId, entity)) && entityUuid != 0UL)
+        if (_deliveredViewerUuids.Remove(new ViewerSubscription(clientId, entity), out ulong deliveredUuid))
         {
-            EnqueueViewerDespawn(clientId, entityUuid);
+            ulong despawnUuid = deliveredUuid != 0UL ? deliveredUuid : entityUuid;
+            if (despawnUuid != 0UL)
+            {
+                EnqueueViewerDespawn(clientId, despawnUuid);
+            }
         }
 
         return true;
@@ -287,9 +291,13 @@ public sealed class NetworkReplicationSystem
             _activeViewerSubscriptionCount = Math.Max(0, _activeViewerSubscriptionCount - 1);
             RemovePendingAttach(clientId, entity);
 
-            if (_deliveredViewerEntities.Remove(new ViewerSubscription(clientId, entity)) && entityUuid != 0UL)
+            if (_deliveredViewerUuids.Remove(new ViewerSubscription(clientId, entity), out ulong deliveredUuid))
             {
-                EnqueueViewerDespawn(clientId, entityUuid);
+                ulong despawnUuid = deliveredUuid != 0UL ? deliveredUuid : entityUuid;
+                if (despawnUuid != 0UL)
+                {
+                    EnqueueViewerDespawn(clientId, despawnUuid);
+                }
             }
         }
     }
@@ -356,7 +364,7 @@ public sealed class NetworkReplicationSystem
         _entitiesByViewer.Clear();
         _pendingViewerAttach.Clear();
         _pendingViewerDespawns.Clear();
-        _deliveredViewerEntities.Clear();
+        _deliveredViewerUuids.Clear();
         _activeViewerSubscriptionCount = 0;
     }
 
@@ -376,7 +384,7 @@ public sealed class NetworkReplicationSystem
                     _activeViewerSubscriptionCount = Math.Max(0, _activeViewerSubscriptionCount - 1);
                 }
 
-                _deliveredViewerEntities.Remove(new ViewerSubscription(clientId, entity));
+                _deliveredViewerUuids.Remove(new ViewerSubscription(clientId, entity));
             }
         }
 
@@ -629,7 +637,11 @@ public sealed class NetworkReplicationSystem
             {
                 foreach (int viewedEntity in fullSyncViewed)
                 {
-                    _deliveredViewerEntities.Add(new ViewerSubscription(clientId, viewedEntity));
+                    ulong viewedUuid = store.GetUuid(viewedEntity).ToValue();
+                    if (viewedUuid != 0UL)
+                    {
+                        _deliveredViewerUuids[new ViewerSubscription(clientId, viewedEntity)] = viewedUuid;
+                    }
                 }
             }
 
@@ -748,7 +760,7 @@ public sealed class NetworkReplicationSystem
 
             if (deliveredAny)
             {
-                _deliveredViewerEntities.Add(new ViewerSubscription(recipient.ClientId, attachEntity));
+                _deliveredViewerUuids[new ViewerSubscription(recipient.ClientId, attachEntity)] = rawUuid;
             }
         }
 

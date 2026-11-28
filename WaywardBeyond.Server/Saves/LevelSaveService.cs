@@ -137,6 +137,7 @@ public sealed class LevelSaveService : IDisposable
 
         //  Resolve each persisted structure into the in-memory local id space. The store has already
         //  deserialized and migrated every entity to the level's data version.
+        var allStructuresLoaded = true;
         foreach (VoxelEntityData entity in levelStorage.GetVoxelEntities(level.Version.DataVersion))
         {
             try
@@ -144,6 +145,7 @@ public sealed class LevelSaveService : IDisposable
                 Result<VoxelEntityData> decodeResult = VoxelCodec.Decode(in entity, _brickRegistry, _paintRegistry);
                 if (!decodeResult.Success)
                 {
+                    allStructuresLoaded = false;
                     _logger.LogWarning("Skipped voxel entity {uuid} while loading level \"{level}\": {message}", entity.Uuid, levelGuid, decodeResult.Message);
                     continue;
                 }
@@ -163,11 +165,12 @@ public sealed class LevelSaveService : IDisposable
             }
             catch (Exception ex)
             {
+                allStructuresLoaded = false;
                 _logger.LogError(ex, "Failed to build authority voxel entity {uuid}.", entity.Uuid);
             }
         }
 
-        if (persistedBlocks != null && persistedBlocks.Count > 0)
+        if (allStructuresLoaded && persistedBlocks != null && persistedBlocks.Count > 0)
         {
             var orphaned = new List<BlockEntityKey>();
             foreach (BlockEntityKey key in persistedBlocks.Keys)

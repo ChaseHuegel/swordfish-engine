@@ -184,7 +184,7 @@ public sealed class ServerInteractionSystem(
 
         CancelMatchingSession(playerUuid, kind);
 
-        InteractionRunResult commitResult = handlerRegistry.Run(ref context, InteractionStage.Commit, InteractionStage.React);
+        InteractionRunResult commitResult = handlerRegistry.Run(ref context, InteractionStage.Commit, InteractionStage.Commit);
         if (commitResult.Decision is InteractionDecision.Consume or InteractionDecision.Cancel)
         {
             logger.LogDebug(
@@ -202,6 +202,14 @@ public sealed class ServerInteractionSystem(
         }
 
         NotifyBlockEntityInteraction(store, in context);
+
+        InteractionRunResult reactResult = handlerRegistry.Run(ref context, InteractionStage.React, InteractionStage.React);
+        if (reactResult.Decision is InteractionDecision.Consume or InteractionDecision.Cancel)
+        {
+            logger.LogDebug(
+                "Interaction {sequence} for player {player} ended in react stage with {decision}.",
+                interaction.SequenceNumber, player, reactResult.Decision);
+        }
     }
 
     private void AdvanceTimedSession(
@@ -265,7 +273,7 @@ public sealed class ServerInteractionSystem(
         if (TimedInteractionProgress.IsComplete(elapsed, requiredDuration))
         {
             _timedSessions.Remove(playerUuid);
-            InteractionRunResult commitResult = handlerRegistry.Run(ref context, InteractionStage.Commit, InteractionStage.React);
+            InteractionRunResult commitResult = handlerRegistry.Run(ref context, InteractionStage.Commit, InteractionStage.Commit);
             if (commitResult.Decision is InteractionDecision.Consume or InteractionDecision.Cancel)
             {
                 logger.LogDebug(
@@ -274,7 +282,19 @@ public sealed class ServerInteractionSystem(
                 return;
             }
 
-            NotifyBlockEntityInteraction(store, in context);
+            if (commitResult.Resolution.Action != InteractionAction.None)
+            {
+                NotifyBlockEntityInteraction(store, in context);
+            }
+
+            InteractionRunResult reactResult = handlerRegistry.Run(ref context, InteractionStage.React, InteractionStage.React);
+            if (reactResult.Decision is InteractionDecision.Consume or InteractionDecision.Cancel)
+            {
+                logger.LogDebug(
+                    "Timed interaction {sequence} for player {player} ended in react stage with {decision}.",
+                    session.Sequence, entity, reactResult.Decision);
+            }
+
             return;
         }
 

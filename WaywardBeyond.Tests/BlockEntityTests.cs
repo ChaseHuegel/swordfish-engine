@@ -764,6 +764,23 @@ public sealed class BlockEntityTests
         Assert.Equal(1, harness.Replication.ActiveViewerSubscriptionCount);
         harness.Replication.CancelStream(viewerA.ServerPeer.GameId);
         Assert.Equal(0, harness.Replication.ActiveViewerSubscriptionCount);
+
+        //  8. Recycled entity index safety: if an entity slot is freed and immediately reused by a different
+        //     entity, DetachOutOfReachViewers despawns the originally delivered UUID and never the recycled entity.
+        Assert.True(harness.BlockEntities.AttachViewer(harness.ServerStore, viewerA.ServerPeer.GameId, machineEntity).Success);
+        harness.Replication.PublishStage(1f, harness.ServerStore);
+        _ = await viewerA.WaitForSnapshotAsync();
+
+        harness.ServerStore.Free(machineEntity);
+        Uuid recycledUuid = Uuid.FromValue(95999);
+        int recycledEntity = harness.ServerStore.Alloc(recycledUuid);
+        Assert.Equal(machineEntity, recycledEntity);
+
+        blockEntitySystem.Tick(1f / 60f, harness.ServerStore);
+        harness.Replication.PublishStage(1f, harness.ServerStore);
+        WorldSnapshot recycledDetach = await viewerA.WaitForSnapshotAsync();
+        Assert.Contains(recycledDetach.RemovedEntities, id => id == machineUuid.ToValue());
+        Assert.DoesNotContain(recycledDetach.RemovedEntities, id => id == recycledUuid.ToValue());
     }
 
     [Fact]
