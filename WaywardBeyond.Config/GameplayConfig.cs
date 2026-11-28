@@ -22,6 +22,18 @@ public sealed class GameplayConfig : Config<GameplayConfig>
     /// <summary>Whether reactive first-person view-model sway is enabled.</summary>
     public DataBinding<bool> FirstPersonSway { get; private set; } = new(true);
 
+    /// <summary>The closing impact speed in meters per second below which a collision deals no damage.</summary>
+    public DataBinding<float> CollisionSafeSpeed { get; private set; } = new(6f);
+
+    /// <summary>The kinetic damage dealt per meter per second of impact speed above <see cref="CollisionSafeSpeed"/>.</summary>
+    public DataBinding<float> CollisionDamagePerSpeed { get; private set; } = new(5f);
+
+    /// <summary>The most kinetic damage one collision can deal before resistance mitigation.</summary>
+    public DataBinding<float> CollisionMaxDamage { get; private set; } = new(100f);
+
+    /// <summary>The window in seconds during which a character ignores further collision damage.</summary>
+    public DataBinding<float> CollisionCooldownSeconds { get; private set; } = new(0.25f);
+
     /// <summary>The position a character spawns at.</summary>
     public DataBinding<Vector3> DefaultSpawnPosition { get; private set; } = new(new Vector3(0f, 1f, 5f));
 

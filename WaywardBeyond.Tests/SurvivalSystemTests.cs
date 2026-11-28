@@ -317,7 +317,7 @@ public class SurvivalSystemTests
         stats.SetFixed(StatisticIds.HEALTH, 100f);
         store.AddOrUpdate(player, stats);
 
-        DamageResult first = DamageService.ApplyDamage(store, player, 60f, DamageSource.Kinetic, simTick: 12);
+        DamageResult first = DamageService.ApplyDamage(store, player, 60f, DamageSource.KineticImpact, simTick: 12);
         Assert.Equal(60f, first.Applied, precision: 3);
         Assert.False(first.Fatal);
 
@@ -348,7 +348,7 @@ public class SurvivalSystemTests
         stats.SetFixed(StatisticIds.KINETIC_RESIST, 0.25f);
         store.AddOrUpdate(resistant, stats);
 
-        DamageResult result = DamageService.ApplyDamage(store, resistant, 40f, DamageSource.Kinetic);
+        DamageResult result = DamageService.ApplyDamage(store, resistant, 40f, DamageSource.KineticImpact);
         Assert.Equal(30f, result.Applied, precision: 3);
     }
 

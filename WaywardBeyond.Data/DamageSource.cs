@@ -10,5 +10,5 @@ public enum DamageSource : byte
     Suffocation = 1,
 
     /// <summary>Damage from a hard collision with a physics body.</summary>
-    Kinetic = 2,
+    KineticImpact = 2,
 }

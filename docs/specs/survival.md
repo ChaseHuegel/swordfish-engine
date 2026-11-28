@@ -93,7 +93,7 @@ path. Suffocation, kinetic collisions (#933), and later hazards call it. It:
 
 - ignores non-positive or non-finite amounts;
 - ignores Creative entities;
-- applies kinetic resistance from `wb:kinetic_resist` to `DamageSource.Kinetic`;
+- applies kinetic resistance from `wb:kinetic_resist` to `DamageSource.KineticImpact`;
 - clamps health to `[0, wb:health_max]`;
 - records `DamageStateComponent.LastSource`, `LastAmount`, and `LastTick`;
 - records `DeathCause` and `DeathTick` when health reaches zero.
@@ -102,10 +102,49 @@ path. Suffocation, kinetic collisions (#933), and later hazards call it. It:
 is server-side and is not replicated. Death handling consumes the fatal record in
 #935.
 
+## Collision damage
+
+`ServerCollisionDamageSystem`
+(`WaywardBeyond.Server/Systems/ServerCollisionDamageSystem.cs`) runs after the
+world's physics slot and before `ServerSurvivalSystem`. It subscribes to
+`IServerWorldPhysics.ContactResolved`, which `ServerPhysicsSystem` forwards from
+the engine's Jolt contact listener (see [physics](physics.md)). Contacts are
+queued on the tick thread and drained in `Tick`, so the damage calculation stays
+in deterministic system order and never runs inside the solver.
+
+For each `Added` contact it evaluates both bodies. A body receives damage only
+when all of these hold:
+
+1. it carries `OwnedCharacterComponent`;
+2. its `GameModeComponent` is `Adventure`;
+3. its `ImpactSpeed` along the contact normal exceeds `CollisionSafeSpeed`;
+4. its owner is outside the `CollisionCooldownSeconds` window.
+
+Damage is `min(CollisionMaxDamage, (ImpactSpeed - CollisionSafeSpeed) *
+CollisionDamagePerSpeed)` and routes through `DamageService.ApplyDamage` with
+`DamageSource.KineticImpact`, so `wb:kinetic_resist` from wearables, augments,
+and S.P.A.C.E.R. Resilience mitigates it. A compound voxel manifold reports
+several contacts for one slam, and the per-owner cooldown collapses them to one
+hit. Creative characters take no damage and record no damage state.
+
+The defaults keep Starter Lifeboat bumps and jetpack walking harmless: a `6 m/s`
+closing speed is free, a `10 m/s` slam deals `20`, and a `26 m/s` slam is lethal
+to an unarmored `100` health character.
+
+| Key | Default | Effect |
+|---|---|---|
+| `CollisionSafeSpeed` | `6` | free closing impact speed in meters per second |
+| `CollisionDamagePerSpeed` | `5` | damage per meter per second above the safe speed |
+| `CollisionMaxDamage` | `100` | per-collision damage cap before resistance |
+| `CollisionCooldownSeconds` | `0.25` | per-owner debounce window; `0` disables it |
+
+The four keys are top-level `GameplayConfig` properties and appear in
+[config-schemas](config-schemas.md).
+
 ## Source of truth
 
 - `WaywardBeyond.Config/SurvivalConfig.cs`, `GameplayConfig.cs`
-- `WaywardBeyond.Server/Systems/ServerSurvivalSystem.cs`
+- `WaywardBeyond.Server/Systems/{ServerSurvivalSystem,ServerCollisionDamageSystem,ServerPhysicsSystem}.cs`
 - `WaywardBeyond.Gameplay/Survival/{DamageService,DamageResult}.cs`
 - `WaywardBeyond.Data/DamageSource.cs`
 - `WaywardBeyond.Data/Components/{DamageStateComponent,StatisticsComponent,StatisticsComponentExtensions}.cs`
@@ -124,6 +163,9 @@ is server-side and is not replicated. Death handling consumes the fatal record i
   refill, suffocation damage and death cause, Creative bypass, write cadence,
   buff regen and expiry pruning, consumable parsing and use, cooldown, and the
   damage path.
+- `WaywardBeyond.Tests/CollisionDamageSystemTests.cs` pins safe-speed gating,
+  scaled and capped damage, compound-contact debouncing, cooldown expiry,
+  Creative immunity, kinetic resistance, and contact-side filtering.
 - `WaywardBeyond.Tests/InteractionIntentTests.cs` pins the secondary edge for a
   consumable.
 - `WaywardBeyond.Tests/ServerJoinStatisticsTests.cs` pins join seeding and buff

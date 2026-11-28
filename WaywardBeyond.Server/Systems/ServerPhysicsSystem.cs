@@ -17,6 +17,13 @@ public sealed class ServerPhysicsSystem : IServerWorldSystem, IServerWorldPhysic
 {
     public event EventHandler<EventArgs>? FixedUpdate;
 
+    /// <inheritdoc/>
+    public event Action<PhysicsContactEvent>? ContactResolved
+    {
+        add => _physics.ContactResolved += value;
+        remove => _physics.ContactResolved -= value;
+    }
+
     /// <summary>The fixed timestep the world physics runs at, in seconds.</summary>
     public float FixedTimestamp => _physics.FixedTimestamp;
 

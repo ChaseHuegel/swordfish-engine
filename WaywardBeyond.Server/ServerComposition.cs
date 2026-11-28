@@ -37,8 +37,8 @@ namespace WaywardBeyond.Server;
 /// <see cref="IEntitySystem"/>), so the client's ECS context cannot resolve them; third-party modules
 /// contribute world systems through <see cref="RegisterServerSystem{T}"/>, which appends them after
 /// the built-ins. Registration order is the world's tick order: join/disconnect → saves →
-/// replication apply → inventory → heartbeats → physics → survival → interaction → laser beam → paint sprayer →
-/// chat → particle flush → replication publish.
+/// replication apply → inventory → heartbeats → physics → collision damage → survival → interaction →
+/// laser beam → paint sprayer → chat → particle flush → replication publish.
 /// </summary>
 public static class ServerComposition
 {
@@ -115,6 +115,8 @@ public static class ServerComposition
         RegisterServerSystem<ServerHeartbeatService>(container);
         //  The physics slot is the world's physics bundle itself (same per-world instance as the step's).
         container.Register(made: Made.Of(() => CreatePhysicsSlot(Arg.Of<IServerWorldPhysics>())), ifAlreadyRegistered: IfAlreadyRegistered.AppendNewImplementation);
+        //  Collision damage drains the contacts the physics slot just dispatched, before survival clamps vitals.
+        RegisterServerSystem<ServerCollisionDamageSystem>(container);
         //  Survival reads the sim tick the physics step just advanced, so it runs after the physics slot.
         RegisterServerSystem<ServerSurvivalSystem>(container);
         container.Register<ServerInteractionSystem>(
