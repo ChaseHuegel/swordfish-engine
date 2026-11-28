@@ -2,6 +2,7 @@
 ID          = "wb:medkit"
 Name        = "item.base.medkit"
 Description = "item.base.medkit.description"
+Icon        = "items/medkit.png"
 MaxStack    = 10
 [Items.Consumable]
 CooldownSeconds = 8.0

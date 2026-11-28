@@ -2,6 +2,7 @@
 ID          = "wb:o2_canister"
 Name        = "item.base.o2_canister"
 Description = "item.base.o2_canister.description"
+Icon        = "items/o2_canister.png"
 MaxStack    = 10
 [Items.Consumable]
 CooldownSeconds = 4.0

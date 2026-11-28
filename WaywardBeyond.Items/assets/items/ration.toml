@@ -2,6 +2,7 @@
 ID          = "wb:ration"
 Name        = "item.base.ration"
 Description = "item.base.ration.description"
+Icon        = "items/ration.png"
 MaxStack    = 10
 [Items.Consumable]
 BuffID          = "wb:well_fed"
