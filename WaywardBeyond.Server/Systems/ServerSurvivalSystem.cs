@@ -96,6 +96,16 @@ public sealed class ServerSurvivalSystem(
             return;
         }
 
+        if (stats.Read.IsDead)
+        {
+            if (owner != Uuid.Null)
+            {
+                _pendingSeconds.Remove(owner);
+            }
+
+            return;
+        }
+
         float interval = UpdateIntervalSeconds;
         float pending = delta;
         if (owner != Uuid.Null)
@@ -236,6 +246,16 @@ public sealed class ServerSurvivalSystem(
         if (ToFixed(oxygen) != ToFixed(oxygenMax))
         {
             StatisticsComponentExtensions.SetFixed(ref stats, StatisticIds.OXYGEN, oxygenMax);
+        }
+
+        if (stats.Read.IsDead)
+        {
+            StatisticsComponentExtensions.SetFlag(ref stats, StatisticIds.DEAD, false);
+            StatisticsComponentExtensions.Remove(ref stats, StatisticIds.DEATH_CAUSE);
+            StatisticsComponentExtensions.Remove(ref stats, StatisticIds.DEATH_X);
+            StatisticsComponentExtensions.Remove(ref stats, StatisticIds.DEATH_Y);
+            StatisticsComponentExtensions.Remove(ref stats, StatisticIds.DEATH_Z);
+            StatisticsComponentExtensions.Remove(ref stats, StatisticIds.DEATH_HAS_CONTAINER);
         }
     }
 

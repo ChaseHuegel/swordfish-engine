@@ -227,6 +227,19 @@ nested sub-message limit. `PlaceBlueprintItemRequest` sends only the target pose
 and transform because the server resolves the blueprint from the player's held
 item. See [region-blueprints](region-blueprints.md).
 
+## Respawn
+
+`WaywardBeyond.Data/Nsd/network.nsd:287-296` defines the client-to-server respawn
+command (RPC method `64`):
+
+```nsd
+message RespawnRequest { byte Dummy = 0; }
+message RespawnResponse { bool Success = 0; string? ErrorKey = 1; }
+```
+
+`ServerDeathSystem` rejects requests for alive players with `Success = false` and
+`ErrorKey = "notification.respawn.notDead"`. See [survival](survival.md).
+
 ## Session heartbeats
 
 `ServerHeartbeatMessage` (server → client, notification 400) and

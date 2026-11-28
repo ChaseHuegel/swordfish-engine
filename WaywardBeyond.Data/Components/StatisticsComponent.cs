@@ -14,6 +14,9 @@ public partial struct StatisticsComponent : IDataComponent
     /// <summary>Gets the number of recorded stat entries.</summary>
     public readonly int Count => Entries != null ? Entries.Length : 0;
 
+    /// <summary>Gets whether the entity is currently in the authoritative dead state.</summary>
+    public readonly bool IsDead => GetFlag(StatisticIds.DEAD);
+
     /// <summary>Attempts to read the raw integer value for <paramref name="id"/>.</summary>
     public readonly bool TryGetValue(string? id, out long value)
     {
@@ -252,6 +255,72 @@ public partial struct StatisticsComponent : IDataComponent
     public bool RemoveBuff(ReadOnlySpan<char> buffId)
     {
         return RemoveAt(IndexOfBuff(buffId));
+    }
+
+    /// <summary>Returns whether any buff timer entry is currently present.</summary>
+    internal readonly bool HasAnyBuffs()
+    {
+        Statistic[]? entries = Entries;
+        if (entries == null || entries.Length == 0)
+        {
+            return false;
+        }
+
+        for (var i = 0; i < entries.Length; i++)
+        {
+            string? id = entries[i].ID;
+            if (id != null && StatisticIds.IsBuffTimerKey(id.AsSpan()))
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /// <summary>Removes all active and persisted buff timer entries, allocating only when at least one is present.</summary>
+    public bool ClearAllBuffs()
+    {
+        Statistic[]? entries = Entries;
+        if (entries == null || entries.Length == 0)
+        {
+            return false;
+        }
+
+        var buffCount = 0;
+        for (var i = 0; i < entries.Length; i++)
+        {
+            string? id = entries[i].ID;
+            if (id != null && StatisticIds.IsBuffTimerKey(id.AsSpan()))
+            {
+                buffCount++;
+            }
+        }
+
+        if (buffCount == 0)
+        {
+            return false;
+        }
+
+        if (buffCount == entries.Length)
+        {
+            Entries = [];
+            return true;
+        }
+
+        var remaining = new Statistic[entries.Length - buffCount];
+        var writeIndex = 0;
+        for (var i = 0; i < entries.Length; i++)
+        {
+            string? id = entries[i].ID;
+            if (id == null || !StatisticIds.IsBuffTimerKey(id.AsSpan()))
+            {
+                remaining[writeIndex++] = entries[i];
+            }
+        }
+
+        Entries = remaining;
+        return true;
     }
 
     /// <summary>Removes all expired buff entries (<c>expires_tick &lt;= currentSimTick</c>), allocating only if any expire.</summary>

@@ -303,11 +303,22 @@ public sealed class ServerJoinSystem(
         store.AddOrUpdate(entity, new BodyViewComponent { Body = request.View.Body });
         store.AddOrUpdate(entity, new IdentifierComponent(CharacterNames.Clamp(request.View.Name), tag: "game"));
 
-        //  Seed the server-authoritative interaction context from the joining client's local save and
-        //  the level's resolved game mode. From here the server owns these components and replicates them.
-        SeedInteractionContext(store, entity, request.State, gameMode);
+        //  Seed the server-authoritative interaction context and statistics from per-level persistence
+        //  and the joining client's local save. From here the server owns these components and replicates them.
         CharacterStatisticsSeeder.SeedSkillState(store, entity, request.State.Statistics, skillDatabase);
         CharacterStatisticsSeeder.SeedAuthoritativeStatistics(store, entity, request.State, gameMode, persistedEntity, simulationStep.CurrentSimTick, gameplayConfig.Survival.MaxHealth.Get(), gameplayConfig.Survival.MaxOxygen.Get());
+        bool isRejoiningDead = store.TryGet(entity, out StatisticsComponent seededStats) && seededStats.IsDead;
+        bool stripDroppedGroups = isRejoiningDead && seededStats.GetFlag(Data.Statistics.StatisticIds.DEATH_HAS_CONTAINER);
+        SeedInteractionContext(store, entity, request.State, gameMode, isRejoiningDead, stripDroppedGroups);
+        if (isRejoiningDead)
+        {
+            var cause = (DamageSource)seededStats.GetValue(Data.Statistics.StatisticIds.DEATH_CAUSE);
+            store.AddOrUpdate(entity, new DamageStateComponent
+            {
+                LastSource = cause,
+                DeathCause = cause,
+            });
+        }
 
         Session session = new(_nextSessionId++);
         sessions.Register(store, entity, clientId, session);
@@ -350,16 +361,30 @@ public sealed class ServerJoinSystem(
     /// inventory is used as-is (and is never restocked). Stack limits are clamped to authoritative item
     /// definitions and the active slot is clamped to the hotbar capacity.
     /// </summary>
-    private void SeedInteractionContext(DataStore store, int entity, in CharacterState seed, GameMode gameMode)
+    private void SeedInteractionContext(
+        DataStore store,
+        int entity,
+        in CharacterState seed,
+        GameMode gameMode,
+        bool isRejoiningDead,
+        bool stripDroppedGroups
+    )
     {
         var inventory = InventoryComponent.CreatePlayer(schemas);
-        KeyedSlotEntry[] initial = PlayerInitialInventory.Resolve(seed.Inventory, gameMode);
+        KeyedSlotEntry[] initial = isRejoiningDead
+            ? (seed.Inventory ?? [])
+            : PlayerInitialInventory.Resolve(seed.Inventory, gameMode);
         if (itemDatabase != null && initial.Length > 0)
         {
             initial = ClampMaxStackSizes(initial, itemDatabase);
         }
 
         inventory.LoadSparse(initial);
+        if (stripDroppedGroups)
+        {
+            inventory = ServerDeathService.StripDroppedGroups(in inventory);
+        }
+
         store.AddOrUpdate(entity, inventory);
         store.AddOrUpdate(entity, new EquipmentComponent(inventory.ClampHotbarSlot(seed.ActiveInventorySlot)));
         store.AddOrUpdate(entity, new GameModeComponent(gameMode));

@@ -38,6 +38,8 @@ public sealed class ServerBrickEntityService
     private readonly Dictionary<BrickAnchorComponent, int> _byAnchor = [];
     private readonly Dictionary<Uuid, HashSet<BrickAnchorComponent>> _anchorsByStructure = [];
     private readonly Dictionary<int, Brick> _brickByEntity = [];
+    private readonly HashSet<int> _autoDespawnEntities = [];
+    private readonly List<int> _autoDespawnScratch = [];
     private readonly List<(Uuid ClientId, int Entity)> _subscriptionScratch = [];
     private readonly List<BrickAnchorComponent> _anchorScratch = [];
 
@@ -207,11 +209,31 @@ public sealed class ServerBrickEntityService
         GameMode gameMode = GameMode.Adventure
     )
     {
+        return OnBrickBroken(store, structureUuid, coord, out _, breakingPlayer, gameMode);
+    }
+
+    /// <summary>
+    /// Handles breaking a brick with a server entity and reports <paramref name="despawnedStructureUuid"/>
+    /// when breaking an auto-despawn container emptied its parent structure.
+    /// </summary>
+    public bool OnBrickBroken(
+        DataStore store,
+        Uuid structureUuid,
+        Int3 coord,
+        out Uuid despawnedStructureUuid,
+        int breakingPlayer = Entity.Null,
+        GameMode gameMode = GameMode.Adventure
+    )
+    {
+        despawnedStructureUuid = Uuid.Null;
         var anchor = new BrickAnchorComponent(structureUuid, coord);
         if (!_byAnchor.TryGetValue(anchor, out int brickEntity))
         {
             return false;
         }
+
+        bool wasAutoDespawn = store.TryGet(brickEntity, out MachineStateComponent machine)
+            && machine.HasStatusFlag(MachineStatusFlags.AutoDespawnWhenEmpty);
 
         if (gameMode != GameMode.Creative
             && breakingPlayer != Entity.Null
@@ -221,7 +243,103 @@ public sealed class ServerBrickEntityService
         }
 
         DestroyBrickEntity(store, anchor, brickEntity);
+
+        if (wasAutoDespawn
+            && store.TryGet(structureUuid, out int structureEntity)
+            && store.TryGet(structureEntity, out VoxelWorldComponent world)
+            && !VoxelRegionApplier.HasSolidVoxels(world.VoxelObject))
+        {
+            OnStructureRemoved(store, structureUuid);
+            _replication?.RequestDespawn(structureUuid.ToValue());
+            store.Free(structureEntity);
+            despawnedStructureUuid = structureUuid;
+        }
+
         return true;
+    }
+
+    /// <summary>Marks <paramref name="brickEntity"/> as a Death-Container that automatically despawns its parent structure once emptied.</summary>
+    public bool MarkAsDeathContainer(DataStore store, int brickEntity)
+    {
+        if (brickEntity == Entity.Null
+            || !store.TryGet(brickEntity, out BrickAnchorComponent anchor)
+            || !_byAnchor.TryGetValue(anchor, out int indexed)
+            || indexed != brickEntity)
+        {
+            return false;
+        }
+
+        MachineStateComponent machine = store.TryGet(brickEntity, out MachineStateComponent existing)
+            ? existing
+            : new MachineStateComponent();
+        machine.StationTag = MachineStateComponent.DEATH_CONTAINER_STATION_TAG;
+        machine.SetStatusFlag(MachineStatusFlags.AutoDespawnWhenEmpty, true);
+        store.AddOrUpdate(brickEntity, machine);
+        _autoDespawnEntities.Add(brickEntity);
+        return true;
+    }
+
+    /// <summary>
+    /// Despawns <paramref name="brickEntity"/> and its parent 1-brick structure when it carries
+    /// <see cref="MachineStatusFlags.AutoDespawnWhenEmpty"/> and holds no items.
+    /// </summary>
+    public bool TryDespawnEmptyAutoDespawnContainer(DataStore store, int brickEntity, out Uuid despawnedStructureUuid)
+    {
+        despawnedStructureUuid = Uuid.Null;
+        if (brickEntity == Entity.Null
+            || !store.TryGet(brickEntity, out MachineStateComponent machine)
+            || !machine.HasStatusFlag(MachineStatusFlags.AutoDespawnWhenEmpty)
+            || !store.TryGet(brickEntity, out InventoryComponent inventory)
+            || inventory.HasAnyItems()
+            || !store.TryGet(brickEntity, out BrickAnchorComponent anchor)
+            || anchor.VoxelEntityUuid == Uuid.Null)
+        {
+            return false;
+        }
+
+        Uuid structureUuid = anchor.VoxelEntityUuid;
+        OnStructureRemoved(store, structureUuid);
+
+        if (store.TryGet(structureUuid, out int structureEntity))
+        {
+            _replication?.RequestDespawn(structureUuid.ToValue());
+            store.Free(structureEntity);
+        }
+
+        despawnedStructureUuid = structureUuid;
+        return true;
+    }
+
+    /// <summary>Sweeps tracked auto-despawn containers and despawns any whose inventory is empty.</summary>
+    public void SweepEmptyAutoDespawnContainers(DataStore store, List<Uuid> despawnedStructures)
+    {
+        if (_autoDespawnEntities.Count == 0)
+        {
+            return;
+        }
+
+        _autoDespawnScratch.Clear();
+        foreach (int entity in _autoDespawnEntities)
+        {
+            _autoDespawnScratch.Add(entity);
+        }
+
+        for (var i = 0; i < _autoDespawnScratch.Count; i++)
+        {
+            int entity = _autoDespawnScratch[i];
+            if (store.GetUuid(entity) == Uuid.Null)
+            {
+                _autoDespawnEntities.Remove(entity);
+                continue;
+            }
+
+            if (TryDespawnEmptyAutoDespawnContainer(store, entity, out Uuid despawnedStructure))
+            {
+                despawnedStructures.Add(despawnedStructure);
+            }
+        }
+
+        _autoDespawnScratch.Clear();
     }
 
     /// <summary>Removes and frees every brick-entity anchored to <paramref name="structureUuid"/>.</summary>
@@ -571,48 +689,33 @@ public sealed class ServerBrickEntityService
         var captured = new List<BrickEntityData>(_byAnchor.Count);
         foreach ((BrickAnchorComponent anchor, int entity) in _byAnchor)
         {
-            if (store.GetUuid(entity) == Uuid.Null)
+            if (TryCaptureEntity(store, in anchor, entity, out BrickEntityData data))
             {
-                continue;
+                captured.Add(data);
             }
+        }
 
-            bool hasMachine = store.TryGet(entity, out MachineStateComponent machine);
-            bool hasInventory = store.TryGet(entity, out InventoryComponent inventory);
-            if (!hasMachine && !hasInventory)
+        return captured.Count > 0 ? [.. captured] : [];
+    }
+
+    /// <summary>Captures all live brick-entities anchored to <paramref name="structureUuid"/> for persistence.</summary>
+    public BrickEntityData[] CaptureForStructure(DataStore store, Uuid structureUuid)
+    {
+        if (structureUuid == Uuid.Null
+            || !_anchorsByStructure.TryGetValue(structureUuid, out HashSet<BrickAnchorComponent>? anchors)
+            || anchors.Count == 0)
+        {
+            return [];
+        }
+
+        var captured = new List<BrickEntityData>(anchors.Count);
+        foreach (BrickAnchorComponent anchor in anchors)
+        {
+            if (_byAnchor.TryGetValue(anchor, out int entity)
+                && TryCaptureEntity(store, in anchor, entity, out BrickEntityData data))
             {
-                continue;
+                captured.Add(data);
             }
-
-            string brickId = _brickByEntity.TryGetValue(entity, out Brick? recorded)
-                ? recorded.ID
-                : string.Empty;
-
-            KeyedSlotEntry[]? inventoryEntries = hasInventory
-                ? inventory.ToSparseEntries()
-                : null;
-
-            string stationTag = hasMachine ? machine.StationTag ?? string.Empty : string.Empty;
-            string? activeRecipeId = hasMachine ? machine.ActiveRecipeId : null;
-            byte persistentFlags = hasMachine
-                ? (byte)(machine.StatusFlags & (byte)MachineStatusFlags.PersistentMask)
-                : (byte)MachineStatusFlags.None;
-            float progress = hasMachine && float.IsFinite(machine.Progress) && machine.Progress > 0f ? machine.Progress : 0f;
-            float duration = hasMachine && float.IsFinite(machine.Duration) && machine.Duration > 0f ? machine.Duration : 0f;
-            bool powerEnabled = hasMachine ? machine.PowerEnabled : true;
-
-            captured.Add(new BrickEntityData(
-                _VoxelEntityUuid: anchor.VoxelEntityUuid.ToValue(),
-                _VoxelX: anchor.VoxelCoord.X,
-                _VoxelY: anchor.VoxelCoord.Y,
-                _VoxelZ: anchor.VoxelCoord.Z,
-                _BrickId: brickId,
-                _StationTag: stationTag,
-                _ActiveRecipeId: activeRecipeId,
-                _Progress: progress,
-                _Duration: duration,
-                _PowerEnabled: powerEnabled,
-                _StatusFlags: persistentFlags,
-                _Inventory: inventoryEntries));
         }
 
         return captured.Count > 0 ? [.. captured] : [];
@@ -624,7 +727,56 @@ public sealed class ServerBrickEntityService
         _byAnchor.Clear();
         _anchorsByStructure.Clear();
         _brickByEntity.Clear();
+        _autoDespawnEntities.Clear();
         _replication?.ClearAllViewers();
+    }
+
+    private bool TryCaptureEntity(DataStore store, in BrickAnchorComponent anchor, int entity, out BrickEntityData data)
+    {
+        data = default;
+        if (store.GetUuid(entity) == Uuid.Null)
+        {
+            return false;
+        }
+
+        bool hasMachine = store.TryGet(entity, out MachineStateComponent machine);
+        bool hasInventory = store.TryGet(entity, out InventoryComponent inventory);
+        if (!hasMachine && !hasInventory)
+        {
+            return false;
+        }
+
+        string brickId = _brickByEntity.TryGetValue(entity, out Brick? recorded)
+            ? recorded.ID
+            : string.Empty;
+
+        KeyedSlotEntry[]? inventoryEntries = hasInventory
+            ? inventory.ToSparseEntries()
+            : null;
+
+        string stationTag = hasMachine ? machine.StationTag ?? string.Empty : string.Empty;
+        string? activeRecipeId = hasMachine ? machine.ActiveRecipeId : null;
+        byte persistentFlags = hasMachine
+            ? (byte)(machine.StatusFlags & (byte)MachineStatusFlags.PersistentMask)
+            : (byte)MachineStatusFlags.None;
+        float progress = hasMachine && float.IsFinite(machine.Progress) && machine.Progress > 0f ? machine.Progress : 0f;
+        float duration = hasMachine && float.IsFinite(machine.Duration) && machine.Duration > 0f ? machine.Duration : 0f;
+        bool powerEnabled = hasMachine ? machine.PowerEnabled : true;
+
+        data = new BrickEntityData(
+            _VoxelEntityUuid: anchor.VoxelEntityUuid.ToValue(),
+            _VoxelX: anchor.VoxelCoord.X,
+            _VoxelY: anchor.VoxelCoord.Y,
+            _VoxelZ: anchor.VoxelCoord.Z,
+            _BrickId: brickId,
+            _StationTag: stationTag,
+            _ActiveRecipeId: activeRecipeId,
+            _Progress: progress,
+            _Duration: duration,
+            _PowerEnabled: powerEnabled,
+            _StatusFlags: persistentFlags,
+            _Inventory: inventoryEntries);
+        return true;
     }
 
     private int SpawnBrickEntity(
@@ -656,6 +808,12 @@ public sealed class ServerBrickEntityService
             }
         }
 
+        if (store.TryGet(entity, out MachineStateComponent machineState)
+            && machineState.HasStatusFlag(MachineStatusFlags.AutoDespawnWhenEmpty))
+        {
+            _autoDespawnEntities.Add(entity);
+        }
+
         _byAnchor[anchor] = entity;
         _brickByEntity[entity] = brick;
         if (!_anchorsByStructure.TryGetValue(structureUuid, out HashSet<BrickAnchorComponent>? anchors))
@@ -682,6 +840,7 @@ public sealed class ServerBrickEntityService
     private void DestroyBrickEntity(DataStore store, in BrickAnchorComponent anchor, int brickEntity)
     {
         _byAnchor.Remove(anchor);
+        _autoDespawnEntities.Remove(brickEntity);
         bool hadBrick = _brickByEntity.Remove(brickEntity, out Brick? brick);
 
         if (_anchorsByStructure.TryGetValue(anchor.VoxelEntityUuid, out HashSet<BrickAnchorComponent>? anchors))
@@ -781,6 +940,11 @@ public sealed class ServerBrickEntityService
             || !IsFinite(playerTransform.Position))
         {
             return Result.FromFailure("Viewer transform is unavailable.");
+        }
+
+        if (store.TryGet(playerEntity, out StatisticsComponent playerStats) && playerStats.IsDead)
+        {
+            return Result.FromFailure("Dead players cannot inspect brick-entities.");
         }
 
         if (!TryResolveWorldPosition(store, in anchor, out Vector3 worldPosition))

@@ -150,6 +150,7 @@ Gameplay tunables shared by the client and the server, registered via
 | `Survival.OxygenRefillPerSecond` | float | `20` | oxygen restored per second in a pressurized room (`wb:pressurized == 1`) |
 | `Survival.SuffocationDamagePerSecond` | float | `5` | health damage per second while oxygen stays at zero |
 | `Survival.UpdateIntervalSeconds` | float | `0.25` | cadence for continuous oxygen, regen, and buff-expiry writes (minimum `0.05`) |
+| `Survival.DeathContainerBlueprintId` | string | `"builtin/death_container"` | bundled 1-brick blueprint ID spawned at the death location in Adventure Mode |
 
 ## `levelgen.toml` (per app)
 

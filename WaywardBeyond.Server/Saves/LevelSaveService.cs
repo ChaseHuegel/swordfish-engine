@@ -288,6 +288,54 @@ public sealed class LevelSaveService : IDisposable
         }
     }
 
+    /// <summary>Captures one voxel structure and its brick-entities on the server thread and queues an atomic upsert to the level database.</summary>
+    public void QueueSaveStructure(DataStore store, int structureEntity)
+    {
+        ILevelStorage? storage = _levelStorage;
+        if (string.IsNullOrEmpty(CurrentLevelGuid) || storage == null || structureEntity == Entity.Null)
+        {
+            return;
+        }
+
+        VoxelEntityData raw = VoxelWorldEntityFactory.ToVoxelEntityData(store, structureEntity);
+        if (raw.Uuid == 0UL)
+        {
+            return;
+        }
+
+        Result<VoxelEntityData> encoded = VoxelCodec.Encode(in raw, _brickRegistry, _paintRegistry);
+        if (!encoded.Success)
+        {
+            _logger.LogWarning("Skipped saving structure {uuid}: {message}", raw.Uuid, encoded.Message);
+            return;
+        }
+
+        Uuid structureUuid = Uuid.FromValue(raw.Uuid);
+        BrickEntityData[] brickEntities = _brickEntities?.CaptureForStructure(store, structureUuid) ?? [];
+        VoxelEntityData snapshot = encoded.Value;
+
+        lock (_saveLock)
+        {
+            _pendingSave = _pendingSave.ContinueWith(_ => PersistStructure(storage, in snapshot, brickEntities));
+        }
+    }
+
+    /// <summary>Queues deletion of one voxel structure and its brick-entities from the level database.</summary>
+    public void QueueDeleteStructure(Uuid structureUuid)
+    {
+        ILevelStorage? storage = _levelStorage;
+        if (string.IsNullOrEmpty(CurrentLevelGuid) || storage == null || structureUuid == Uuid.Null)
+        {
+            return;
+        }
+
+        ulong rawUuid = structureUuid.ToValue();
+        lock (_saveLock)
+        {
+            _pendingSave = _pendingSave.ContinueWith(_ => DeletePersistedStructure(storage, rawUuid));
+        }
+    }
+
     /// <summary>
     /// Captures the authoritative level state on the caller (server) thread, then submits the blocking
     /// save-database writes to a worker. Reading the store must stay on the server thread; the writes
@@ -470,6 +518,44 @@ public sealed class LevelSaveService : IDisposable
                     _pendingCharacterLocations.Remove(data.Uuid);
                 }
             }
+        }
+    }
+
+    private void PersistStructure(ILevelStorage storage, in VoxelEntityData voxelEntity, BrickEntityData[] brickEntities)
+    {
+        try
+        {
+            lock (_saveLock)
+            {
+                Result result = storage.SaveStructure(voxelEntity, brickEntities);
+                if (!result.Success)
+                {
+                    _logger.LogError(result.Exception, "Failed to persist structure {uuid}: {message}", voxelEntity.Uuid, result.Message);
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to persist structure {uuid}.", voxelEntity.Uuid);
+        }
+    }
+
+    private void DeletePersistedStructure(ILevelStorage storage, ulong structureUuid)
+    {
+        try
+        {
+            lock (_saveLock)
+            {
+                Result result = storage.DeleteStructure(structureUuid);
+                if (!result.Success)
+                {
+                    _logger.LogError(result.Exception, "Failed to delete structure {uuid}: {message}", structureUuid, result.Message);
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to delete structure {uuid}.", structureUuid);
         }
     }
 

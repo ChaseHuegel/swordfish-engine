@@ -12,6 +12,7 @@ using WaywardBeyond.Gameplay.Networking;
 using WaywardBeyond.Items;
 using WaywardBeyond.Server.Components;
 using WaywardBeyond.Server.Permissions;
+using WaywardBeyond.Server.Saves;
 
 namespace WaywardBeyond.Server.Systems;
 
@@ -25,11 +26,15 @@ public sealed class ServerInventorySystem(
     ILocalizedTagsDatabase? tagDatabase = null,
     IItemDatabase? itemDatabase = null,
     SessionManager? sessions = null,
-    IUserPermissionService? permissions = null
+    IUserPermissionService? permissions = null,
+    ServerBrickEntityService? brickEntities = null,
+    LevelSaveService? saveService = null
 ) : IServerWorldSystem
 {
     private readonly SessionManager? _sessions = sessions;
     private readonly IUserPermissionService? _permissions = permissions;
+    private readonly ServerBrickEntityService? _brickEntities = brickEntities;
+    private readonly LevelSaveService? _saveService = saveService;
     private readonly InventoryValidationContext _context = new(schemas, tagDatabase?.Invariant, itemDatabase);
 
     /// <inheritdoc/>
@@ -60,6 +65,18 @@ public sealed class ServerInventorySystem(
         Result<InventoryOp> stagedOp = staged.Consume(consumedSequence);
         if (!stagedOp.Success)
         {
+            staged.Clear();
+            return false;
+        }
+
+        if (store.TryGet(entity, out StatisticsComponent stats) && stats.IsDead)
+        {
+            while (stagedOp.Success)
+            {
+                consumedSequence = stagedOp.Value.SequenceNumber;
+                stagedOp = staged.Consume(consumedSequence);
+            }
+
             staged.Clear();
             return false;
         }
@@ -157,7 +174,7 @@ public sealed class ServerInventorySystem(
             if (InventoryResolver.Apply(ref fromCopy, ref playerInventory, in normalized, in _context))
             {
                 playerChanged = true;
-                store.AddOrUpdate(fromEntity, fromCopy);
+                CommitRemoteSourceContainer(store, fromEntity, in fromCopy);
             }
 
             return;
@@ -169,9 +186,20 @@ public sealed class ServerInventorySystem(
             InventoryComponent toCopy = toRemote.Clone();
             if (InventoryResolver.Apply(ref fromCopy, ref toCopy, in normalized, in _context))
             {
-                store.AddOrUpdate(fromEntity, fromCopy);
                 store.AddOrUpdate(toEntity, toCopy);
+                CommitRemoteSourceContainer(store, fromEntity, in fromCopy);
             }
+        }
+    }
+
+    private void CommitRemoteSourceContainer(DataStore store, int fromEntity, in InventoryComponent updatedSource)
+    {
+        store.AddOrUpdate(fromEntity, updatedSource);
+        if (!updatedSource.HasAnyItems()
+            && _brickEntities != null
+            && _brickEntities.TryDespawnEmptyAutoDespawnContainer(store, fromEntity, out Uuid despawnedStructure))
+        {
+            _saveService?.QueueDeleteStructure(despawnedStructure);
         }
     }
 

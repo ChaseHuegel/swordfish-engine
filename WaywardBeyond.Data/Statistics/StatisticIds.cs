@@ -39,6 +39,24 @@ public static class StatisticIds
     /// <summary>Environmental pressurization flag stat ID (0 = vacuum, 1 = pressurized).</summary>
     public const string PRESSURIZED = "wb:pressurized";
 
+    /// <summary>Authoritative death state flag stat ID (0 = alive, 1 = dead).</summary>
+    public const string DEAD = "wb:dead";
+
+    /// <summary>Fatal <see cref="DamageSource"/> value recorded on death.</summary>
+    public const string DEATH_CAUSE = "wb:death_cause";
+
+    /// <summary>Fixed-point world X coordinate of the death location or dropped Death-Container.</summary>
+    public const string DEATH_X = "wb:death_x";
+
+    /// <summary>Fixed-point world Y coordinate of the death location or dropped Death-Container.</summary>
+    public const string DEATH_Y = "wb:death_y";
+
+    /// <summary>Fixed-point world Z coordinate of the death location or dropped Death-Container.</summary>
+    public const string DEATH_Z = "wb:death_z";
+
+    /// <summary>Flag indicating whether a recoverable Death-Container was spawned on death (0 = none, 1 = dropped).</summary>
+    public const string DEATH_HAS_CONTAINER = "wb:death_has_container";
+
     /// <summary>S.P.A.C.E.R. Strength attribute stat ID.</summary>
     public const string STRENGTH = "wb:strength";
 
@@ -219,7 +237,10 @@ public static class StatisticIds
     /// <summary>Returns whether <paramref name="statId"/> stores an unscaled integer (attribute or flag) rather than fixed-point units.</summary>
     public static bool IsIntegerStat(ReadOnlySpan<char> statId)
     {
-        if (statId.Equals(PRESSURIZED.AsSpan(), StringComparison.Ordinal))
+        if (statId.Equals(PRESSURIZED.AsSpan(), StringComparison.Ordinal)
+            || statId.Equals(DEAD.AsSpan(), StringComparison.Ordinal)
+            || statId.Equals(DEATH_CAUSE.AsSpan(), StringComparison.Ordinal)
+            || statId.Equals(DEATH_HAS_CONTAINER.AsSpan(), StringComparison.Ordinal))
         {
             return true;
         }
@@ -238,6 +259,17 @@ public static class StatisticIds
         }
 
         return false;
+    }
+
+    /// <summary>Returns whether <paramref name="statId"/> names a per-level death state entry.</summary>
+    public static bool IsDeathStat(ReadOnlySpan<char> statId)
+    {
+        return statId.Equals(DEAD.AsSpan(), StringComparison.Ordinal)
+            || statId.Equals(DEATH_CAUSE.AsSpan(), StringComparison.Ordinal)
+            || statId.Equals(DEATH_X.AsSpan(), StringComparison.Ordinal)
+            || statId.Equals(DEATH_Y.AsSpan(), StringComparison.Ordinal)
+            || statId.Equals(DEATH_Z.AsSpan(), StringComparison.Ordinal)
+            || statId.Equals(DEATH_HAS_CONTAINER.AsSpan(), StringComparison.Ordinal);
     }
 
     /// <summary>Returns whether <paramref name="statId"/> names any buff timer entry (active expiry or persisted remaining ticks).</summary>

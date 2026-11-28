@@ -233,6 +233,103 @@ public sealed class SqliteLevelStorage : ILevelStorage
         }
     }
 
+    /// <inheritdoc/>
+    public Result SaveStructure(VoxelEntityData voxelEntity, IReadOnlyList<BrickEntityData> brickEntities)
+    {
+        using Lock.Scope _ = _writeLock.EnterScope();
+        ObjectDisposedException.ThrowIf(_disposed, this);
+
+        try
+        {
+            using SqliteDatabase.Transaction transaction = _database.BeginTransaction(deferred: false);
+            string encodedUuid = SqliteDatabase.EncodeKey(voxelEntity.Uuid);
+
+            using (SqliteCommand upsertEntity = _entitiesTable.CreateCommand(transaction.Connection))
+            {
+                upsertEntity.CommandText = """
+                    INSERT INTO entities (uuid, data) VALUES ($uuid, $data)
+                    ON CONFLICT(uuid) DO UPDATE SET data = excluded.data;
+                    """;
+                upsertEntity.Parameters.AddWithValue("$uuid", encodedUuid);
+                upsertEntity.Parameters.AddWithValue("$data", voxelEntity.Serialize());
+                upsertEntity.ExecuteNonQuery();
+            }
+
+            using (SqliteCommand deleteBricks = _brickEntitiesTable.CreateCommand(transaction.Connection))
+            {
+                deleteBricks.CommandText = "DELETE FROM brick_entities WHERE voxel_entity_uuid = $uuid;";
+                deleteBricks.Parameters.AddWithValue("$uuid", encodedUuid);
+                deleteBricks.ExecuteNonQuery();
+            }
+
+            if (brickEntities != null && brickEntities.Count > 0)
+            {
+                using SqliteCommand insertBricks = _brickEntitiesTable.CreateCommand(transaction.Connection);
+                insertBricks.CommandText = """
+                    INSERT OR REPLACE INTO brick_entities (voxel_entity_uuid, voxel_x, voxel_y, voxel_z, data)
+                    VALUES ($uuid, $x, $y, $z, $data);
+                    """;
+                insertBricks.Parameters.Add("$uuid", SqliteType.Text);
+                insertBricks.Parameters.Add("$x", SqliteType.Integer);
+                insertBricks.Parameters.Add("$y", SqliteType.Integer);
+                insertBricks.Parameters.Add("$z", SqliteType.Integer);
+                insertBricks.Parameters.Add("$data", SqliteType.Blob);
+
+                for (var i = 0; i < brickEntities.Count; i++)
+                {
+                    BrickEntityData brick = brickEntities[i];
+                    insertBricks.Parameters["$uuid"].Value = SqliteDatabase.EncodeKey(brick.VoxelEntityUuid);
+                    insertBricks.Parameters["$x"].Value = brick.VoxelX;
+                    insertBricks.Parameters["$y"].Value = brick.VoxelY;
+                    insertBricks.Parameters["$z"].Value = brick.VoxelZ;
+                    insertBricks.Parameters["$data"].Value = brick.Serialize();
+                    insertBricks.ExecuteNonQuery();
+                }
+            }
+
+            transaction.Value.Commit();
+            return Result.FromSuccess();
+        }
+        catch (Exception ex)
+        {
+            return new Result(false, $"Failed to save structure {voxelEntity.Uuid}: {ex.Message}", ex);
+        }
+    }
+
+    /// <inheritdoc/>
+    public Result DeleteStructure(ulong voxelEntityUuid)
+    {
+        using Lock.Scope _ = _writeLock.EnterScope();
+        ObjectDisposedException.ThrowIf(_disposed, this);
+
+        try
+        {
+            using SqliteDatabase.Transaction transaction = _database.BeginTransaction(deferred: false);
+            string encodedUuid = SqliteDatabase.EncodeKey(voxelEntityUuid);
+
+            using (SqliteCommand deleteBricks = _brickEntitiesTable.CreateCommand(transaction.Connection))
+            {
+                deleteBricks.CommandText = "DELETE FROM brick_entities WHERE voxel_entity_uuid = $uuid;";
+                deleteBricks.Parameters.AddWithValue("$uuid", encodedUuid);
+                deleteBricks.ExecuteNonQuery();
+            }
+
+            using (SqliteCommand deleteEntity = _entitiesTable.CreateCommand(transaction.Connection))
+            {
+                deleteEntity.CommandText = "DELETE FROM entities WHERE uuid = $uuid;";
+                deleteEntity.Parameters.AddWithValue("$uuid", encodedUuid);
+                deleteEntity.ExecuteNonQuery();
+            }
+
+            transaction.Value.Commit();
+            return Result.FromSuccess();
+        }
+        catch (Exception ex)
+        {
+            return new Result(false, $"Failed to delete structure {voxelEntityUuid}: {ex.Message}", ex);
+        }
+    }
+
     private Result SaveCore(
         Level level,
         IReadOnlyList<VoxelEntityData> voxelEntities,

@@ -263,6 +263,38 @@ public sealed class ServerHandlers : GameServerApiHandler
             : new ValueTask<RpcResult<RegionOpResponse>>(completion.Task);
     }
 
+    /// <inheritdoc/>
+    public override ValueTask<RpcResult<RespawnResponse>> RespawnAsync(
+        RespawnRequest request,
+        RpcContext context,
+        CancellationToken cancellationToken
+    ) {
+        if (!TryGetPeer(in context, out ServerPeer peer) || peer.World == null)
+        {
+            return new ValueTask<RpcResult<RespawnResponse>>(
+                RpcResult<RespawnResponse>.Failure(GameRpcErrors.NOT_JOINED, "the peer has not joined a world"));
+        }
+
+        var completion = new TaskCompletionSource<RpcResult<RespawnResponse>>(TaskCreationOptions.RunContinuationsAsynchronously);
+        CancellationTokenRegistration registration = cancellationToken.CanBeCanceled
+            ? cancellationToken.Register(
+                static state => ((TaskCompletionSource<RpcResult<RespawnResponse>>)state!).TrySetResult(
+                    RpcResult<RespawnResponse>.Failure(GameRpcErrors.INVALID_STATE, "the respawn request was cancelled")),
+                completion)
+            : default;
+
+        if (!TryStage(peer, peer.RespawnCalls, new ServerPeer.RespawnCall(completion, cancellationToken)))
+        {
+            registration.Dispose();
+            return new ValueTask<RpcResult<RespawnResponse>>(
+                RpcResult<RespawnResponse>.Failure(GameRpcErrors.INVALID_STATE, "the server is behind on this client's requests"));
+        }
+
+        return cancellationToken.CanBeCanceled
+            ? AwaitAndDisposeAsync(completion.Task, registration)
+            : new ValueTask<RpcResult<RespawnResponse>>(completion.Task);
+    }
+
     private static async ValueTask<T> AwaitAndDisposeAsync<T>(Task<T> task, CancellationTokenRegistration registration)
     {
         try

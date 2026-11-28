@@ -202,6 +202,8 @@ internal sealed class ClientReconcileSystem(
             store.Free(entity);
         }
 
+        bool wasLocalPlayerDead = TryGetLocalPlayerDeadState(store, out Uuid localPlayerUuid);
+
         ComponentSnapshot[] components = snapshot.Components;
         for (var i = 0; i < components.Length; i++)
         {
@@ -230,6 +232,16 @@ internal sealed class ClientReconcileSystem(
         //  The pending ring has not been trimmed yet, so the reconciler can read the look totals at the
         //  server's ack before the trim removes them.
         localPlayerReconciler.ApplySnapshot(store, snapshot.LastProcessedInput);
+
+        if (wasLocalPlayerDead && !TryGetLocalPlayerDeadState(store, out Uuid revivedUuid))
+        {
+            localPlayerReconciler.SnapToTarget(store);
+            Uuid forgetUuid = revivedUuid != Uuid.Null ? revivedUuid : localPlayerUuid;
+            if (forgetUuid != Uuid.Null)
+            {
+                motionProcessor.Step?.ForgetLookHistory(forgetUuid);
+            }
+        }
 
         TrimPendingInput(snapshot.LastProcessedInput, snapshot.TickNumber, rebaseClock: !_hasAlignedToSnapshot, store);
 
@@ -445,6 +457,14 @@ internal sealed class ClientReconcileSystem(
         }
     }
 
+    private static bool TryGetLocalPlayerDeadState(DataStore store, out Uuid playerUuid)
+    {
+        var probe = new LocalPlayerDeadProbe();
+        store.Query<PlayerComponent, LocalPlayerDeadProbe>(0f, ref probe);
+        playerUuid = probe.PlayerUuid;
+        return probe.IsDead;
+    }
+
     private static void EnsureRemoteCharacterColliders(DataStore store)
     {
         EnsureRemoteCharacterColliderAction action = new();
@@ -526,6 +546,18 @@ internal sealed class ClientReconcileSystem(
 
                 pending.Write.LastAcked = acked;
             }
+        }
+    }
+
+    private struct LocalPlayerDeadProbe : IForEach<PlayerComponent>
+    {
+        public Uuid PlayerUuid;
+        public bool IsDead;
+
+        public void Execute(float delta, DataStore store, int entity, in PlayerComponent player)
+        {
+            PlayerUuid = store.GetUuid(entity);
+            IsDead = store.TryGet(entity, out StatisticsComponent stats) && stats.IsDead;
         }
     }
 }

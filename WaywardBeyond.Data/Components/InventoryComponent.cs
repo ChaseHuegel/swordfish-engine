@@ -432,6 +432,43 @@ public partial struct InventoryComponent : IDataComponent
         return hydrated._items != null ? hydrated._items.AsSpan() : ReadOnlySpan<ItemData>.Empty;
     }
 
+    /// <summary>Returns whether any slot or orphan entry holds a non-empty item stack without allocating.</summary>
+    public readonly bool HasAnyItems()
+    {
+        if (_orphans != null && _orphans.Count > 0)
+        {
+            return true;
+        }
+
+        if (_items != null)
+        {
+            for (var i = 0; i < _items.Length; i++)
+            {
+                if (!_items[i].IsEmpty())
+                {
+                    return true;
+                }
+            }
+
+            return false;
+        }
+
+        if (Slots == null)
+        {
+            return false;
+        }
+
+        for (var i = 0; i < Slots.Length; i++)
+        {
+            if (!Slots[i].Item.IsEmpty())
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
     /// <summary>Returns sparse non-empty slot entries (plus any unrecovered orphans) for persistence.</summary>
     public readonly KeyedSlotEntry[] ToSparseEntries()
     {

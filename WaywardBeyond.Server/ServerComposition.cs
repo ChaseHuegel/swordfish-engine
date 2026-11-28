@@ -108,7 +108,9 @@ public static class ServerComposition
                 Arg.Of<ISlotGroupSchemaDatabase>(),
                 Arg.Of<IItemDatabase>(),
                 Arg.Of<SessionManager>(),
-                Arg.Of<IUserPermissionService>()
+                Arg.Of<IUserPermissionService>(),
+                Arg.Of<ServerBrickEntityService>(),
+                Arg.Of<LevelSaveService>()
             )),
             ifAlreadyRegistered: IfAlreadyRegistered.AppendNewImplementation
         );
@@ -117,6 +119,24 @@ public static class ServerComposition
         container.Register(made: Made.Of(() => CreatePhysicsSlot(Arg.Of<IServerWorldPhysics>())), ifAlreadyRegistered: IfAlreadyRegistered.AppendNewImplementation);
         //  Survival reads the sim tick the physics step just advanced, so it runs after the physics slot.
         RegisterServerSystem<ServerSurvivalSystem>(container);
+        container.Register<ServerDeathService>(
+            made: Made.Of(() => CreateDeathService(
+                Arg.Of<IContainer>(),
+                Arg.Of<SimulationStep>(),
+                Arg.Of<GameplayConfig>(),
+                Arg.Of<NetworkReplicationSystem>(),
+                Arg.Of<SessionManager>(),
+                Arg.Of<ServerPeers>(),
+                Arg.Of<LevelSaveService>(),
+                Arg.Of<ServerBrickEntityService>(),
+                Arg.Of<IServerWorldPhysics>(),
+                Arg.Of<IBrickRegistry>(),
+                Arg.Of<IBrickDatabase>(),
+                Arg.Of<IItemDatabase>(),
+                Arg.Of<ILogger<ServerDeathService>>()
+            ))
+        );
+        RegisterServerSystem<ServerDeathSystem>(container);
         container.Register<ServerInteractionSystem>(
             made: Made.Of(() => new ServerInteractionSystem(
                 Arg.Of<SessionManager>(),
@@ -124,7 +144,8 @@ public static class ServerComposition
                 Arg.Of<IInteractionHandlerRegistry>(),
                 Arg.Of<Func<DataStore, IVoxelInteractionWorld>>(),
                 Arg.Of<SimulationStep>(),
-                Arg.Of<ServerBrickEntityService>()
+                Arg.Of<ServerBrickEntityService>(),
+                Arg.Of<LevelSaveService>()
             ))
         );
         container.Register(made: Made.Of(() => CreateInteractionSystem(Arg.Of<ServerInteractionSystem>())));
@@ -198,13 +219,52 @@ public static class ServerComposition
         ISlotGroupSchemaDatabase schemas,
         IItemDatabase itemDatabase,
         SessionManager sessions,
-        IUserPermissionService permissions
+        IUserPermissionService permissions,
+        ServerBrickEntityService brickEntities,
+        LevelSaveService saveService
     )
     {
         ILocalizedTagsDatabase? tags = container.IsRegistered<VirtualFileSystem>() && container.IsRegistered<IFileParseService>()
             ? container.Resolve<ILocalizedTagsDatabase>(IfUnresolved.ReturnDefault)
             : null;
-        return new ServerInventorySystem(schemas, tags, itemDatabase, sessions, permissions);
+        return new ServerInventorySystem(schemas, tags, itemDatabase, sessions, permissions, brickEntities, saveService);
+    }
+
+    private static ServerDeathService CreateDeathService(
+        IContainer container,
+        SimulationStep simulationStep,
+        GameplayConfig gameplayConfig,
+        NetworkReplicationSystem replication,
+        SessionManager sessions,
+        ServerPeers peers,
+        LevelSaveService saveService,
+        ServerBrickEntityService brickEntities,
+        IServerWorldPhysics physics,
+        IBrickRegistry brickRegistry,
+        IBrickDatabase brickDatabase,
+        IItemDatabase itemDatabase,
+        ILogger<ServerDeathService> logger
+    )
+    {
+        IPaintRegistry? paintRegistry = container.Resolve<IPaintRegistry>(IfUnresolved.ReturnDefault);
+        IBundledBlueprintDatabase? bundledBlueprints = container.IsRegistered<VirtualFileSystem>() && container.IsRegistered<IFileParseService>()
+            ? container.Resolve<IBundledBlueprintDatabase>(IfUnresolved.ReturnDefault)
+            : null;
+        return new ServerDeathService(
+            simulationStep,
+            gameplayConfig,
+            replication,
+            sessions,
+            peers,
+            saveService,
+            brickEntities,
+            physics,
+            brickRegistry,
+            brickDatabase,
+            paintRegistry,
+            bundledBlueprints,
+            itemDatabase,
+            logger);
     }
 
     /// <summary>

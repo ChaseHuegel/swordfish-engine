@@ -54,7 +54,8 @@ public sealed class ServerLaserBeamSystem(
         in TransformComponent transform,
         in InputComponent latestInput
     ) {
-        bool primaryHeld = ResolvePrimaryHeld(in net, in latestInput, simTick, _simulationStep.CommandMaxAgeTicks);
+        bool isDead = store.TryGet(entity, out StatisticsComponent stats) && stats.IsDead;
+        bool primaryHeld = !isDead && ResolvePrimaryHeld(in net, in latestInput, simTick, _simulationStep.CommandMaxAgeTicks);
         bool holdingLaser = primaryHeld && IsHoldingMiningTool(store, entity);
 
         if (!holdingLaser)

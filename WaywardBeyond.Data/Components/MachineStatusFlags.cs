@@ -21,6 +21,9 @@ public enum MachineStatusFlags : byte
     /// <summary>A toggleable door or hatch brick-entity is open.</summary>
     Open = 1 << 3,
 
+    /// <summary>The container and its parent single-brick structure automatically despawn once emptied.</summary>
+    AutoDespawnWhenEmpty = 1 << 4,
+
     /// <summary>Subset of status flags persisted across level saves and reloads.</summary>
-    PersistentMask = Open,
+    PersistentMask = Open | AutoDespawnWhenEmpty,
 }

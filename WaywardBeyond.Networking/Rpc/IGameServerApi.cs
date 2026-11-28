@@ -80,6 +80,15 @@ public interface IGameServerApi
     ValueTask<RpcResult<RegionOpResponse>> PlaceBlueprintItemAsync(
         PlaceBlueprintItemRequest request, RpcContext context, CancellationToken cancellationToken);
 
+    [RpcMethod(GameRpc.Methods.RESPAWN, RpcDirection.ClientToServer)]
+    Task<RpcResult<RespawnResponse>> RespawnAsync(
+        RespawnRequest request,
+        CancellationToken cancellationToken = default);
+
+    [RpcMethod(GameRpc.Methods.RESPAWN, RpcDirection.ClientToServer)]
+    ValueTask<RpcResult<RespawnResponse>> RespawnAsync(
+        RespawnRequest request, RpcContext context, CancellationToken cancellationToken);
+
     [RpcMethod(GameRpc.Methods.LIST_LEVELS, RpcDirection.ClientToServer)]
     Task<RpcResult<ListLevelsResponse>> ListLevelsAsync(
         ListLevelsRequest request,

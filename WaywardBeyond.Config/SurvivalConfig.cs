@@ -22,4 +22,7 @@ public sealed record SurvivalConfig
 
     /// <summary>The cadence in seconds at which continuous oxygen and buff writes replicate.</summary>
     public DataBinding<float> UpdateIntervalSeconds { get; private set; } = new(0.25f);
+
+    /// <summary>Bundled blueprint ID spawned as a recoverable Death-Container when an Adventure player dies with items.</summary>
+    public DataBinding<string> DeathContainerBlueprintId { get; private set; } = new("builtin/death_container");
 }

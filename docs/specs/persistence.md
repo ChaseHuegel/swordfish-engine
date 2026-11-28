@@ -53,8 +53,11 @@ merges durable namespaced replicated stats from `StatisticsComponent` into
 (`wb:strength`, `wb:precision`, `wb:awareness`, `wb:charisma`, `wb:education`,
 `wb:resolve`) live directly in `Character.Statistics` from character creation.
 The merge preserves skill XP and counters and strips transient `wb:pressurized`,
-`wb:buff.<id>.expires_tick`, `wb:buff.<id>.remaining_ticks`, and
-`wb:cooldown.<itemId>` keys.
+`wb:buff.<id>.expires_tick`, `wb:buff.<id>.remaining_ticks`,
+`wb:cooldown.<itemId>`, and per-level death state (`wb:dead`, `wb:death_cause`,
+`wb:death_x`, `wb:death_y`, `wb:death_z`, `wb:death_has_container`) keys.
+A dead colonist in one level never carries dead state into `profile.db` or
+another level.
 `level_metadata` stores
 one raw nsd blob per level guid; the
 model is `LevelMetadata` (`WaywardBeyond.Data/Nsd/saves.nsd`), a wrapper
@@ -105,20 +108,25 @@ A full level save commits one transaction (`ILevelStorage.Save`):
   removed from the world no longer persists.
   - Every `brick_entities` row is replaced by the captured `BrickEntityData`
   snapshot (`ServerBrickEntityService.Capture`,
-  `WaywardBeyond.Server/Systems/ServerBrickEntityService.cs:564`). Each record
+  `WaywardBeyond.Server/Systems/ServerBrickEntityService.cs:682`). Each record
   stores the anchor `(VoxelEntityUuid, VoxelX, VoxelY, VoxelZ)`, `BrickId`,
   sparse keyed `InventoryComponent` entries, and persistent `MachineStateComponent`
   fields (`StationTag`, `ActiveRecipeId`, `Progress`, `Duration`, `PowerEnabled`,
-  and `MachineStatusFlags.PersistentMask` such as door `Open`). Transient runtime
-  state (`HasPower` and non-persistent status flags) resets on load.
+  and `MachineStatusFlags.PersistentMask` such as door `Open` and
+  `AutoDespawnWhenEmpty`). Transient runtime state (`HasPower` and non-persistent
+  status flags) resets on load. `InventoryBrickEntityDecorator` expands persisted
+  slot group capacity on load to cover every saved `LocalIndex` up to
+  `SlotGroupLayout.MAX_TOTAL_CAPACITY`, so a Death-Container holding more than
+  27 stacks reloads without orphaning items. `MachineBrickEntityDecorator`
+  preserves saved non-empty `StationTag` values such as `"death_container"`.
   - Each captured `character_locations` row upserts. Rows absent from the
   capture are never deleted. A character not present in the world at save time
   keeps its last location.
 
-`LevelSaveService.LoadLevel` (`WaywardBeyond.Server/Saves/LevelSaveService.cs:119-203`)
+`LevelSaveService.LoadLevel` (`WaywardBeyond.Server/Saves/LevelSaveService.cs:85`)
 reads all `brick_entities` rows and delegates each loaded structure to
 `ServerBrickEntityService.RestoreStructure`
-(`WaywardBeyond.Server/Systems/ServerBrickEntityService.cs:355`). Every placed
+(`WaywardBeyond.Server/Systems/ServerBrickEntityService.cs:473`). Every placed
 brick claimed by an `IServerBrickEntityDecorator` allocates a server ECS
 brick-entity with `BrickAnchorComponent` and decorator-provisioned components
 (`InventoryComponent`, `ContainerAccessComponent`, `MachineStateComponent`),
@@ -127,6 +135,17 @@ any saved `brick_entities` row whose structure no longer exists or whose brick a
 that coordinate no longer matches is deleted through
 `ILevelStorage.DeleteBrickEntities`
 (`WaywardBeyond.Data/Levels/SqliteLevelStorage.cs:194`).
+
+Death-Container spawns and auto-despawns persist immediately on the save worker
+without triggering a full level save toast. `LevelSaveService.QueueSaveStructure`
+(`WaywardBeyond.Server/Saves/LevelSaveService.cs:292`) captures the new structure
+and its brick-entities on the server thread and runs `ILevelStorage.SaveStructure`
+(`WaywardBeyond.Data/Levels/SqliteLevelStorage.cs:237`) in one transaction.
+`LevelSaveService.QueueDeleteStructure`
+(`WaywardBeyond.Server/Saves/LevelSaveService.cs:324`) deletes both the `entities`
+row and every `brick_entities` row for that structure through
+`ILevelStorage.DeleteStructure`
+(`WaywardBeyond.Data/Levels/SqliteLevelStorage.cs:300`).
 
 The store hands out deserialized models, not bytes. `ILevelStorage.GetLevel`
 returns the level, `GetVoxelEntities` returns the level's registered voxel
@@ -145,27 +164,34 @@ switch opens the next level through the catalog, and server shutdown flushes
 each world before its container is disposed.
 
 `MarkActive` and `EndSessionStamp` are small writes that only touch the `level`
-row. `QueueSaveCharacterLocation` (`WaywardBeyond.Server/Saves/LevelSaveService.cs:200`)
-calls `CaptureCharacter` (`WaywardBeyond.Server/Saves/LevelSaveService.cs:407-429`) to
+row. `QueueSaveCharacterLocation` (`WaywardBeyond.Server/Saves/LevelSaveService.cs:269`)
+calls `CaptureCharacter` (`WaywardBeyond.Server/Saves/LevelSaveService.cs:562`) to
 capture transform, scale, game mode, and surviving `StatisticsComponent` entries on the
 server thread and queues a single `character_locations` upsert on the save worker.
 `StatisticsPersistence.CaptureServerStatistics` excludes `wb:pressurized`,
 `wb:cooldown.<itemId>`, and expired `wb:buff.<id>.expires_tick` entries
-(`expires_tick <= currentSimTick`), and converts active
+(`expires_tick <= currentSimTick`), converts active
 buff expiry ticks into tick-independent `wb:buff.<id>.remaining_ticks` counts so server
-restarts preserve remaining buff duration. It keeps the
+restarts preserve remaining buff duration, and retains per-level death state
+(`wb:dead` and `wb:death_*`). It keeps the
 pending record in memory until the worker commits it, so an immediate rejoin reads the
 latest transform, game mode, and `CharacterEntityData.Statistics`
 (`WaywardBeyond.Data/Nsd/saves.nsd:105`) through `GetCharacterEntity`. A character with
 no row in the level starts at `Level.Spawn` with `Level.DefaultGameMode`.
-`CharacterStatisticsSeeder.SeedAuthoritativeStatistics` (`WaywardBeyond.Gameplay/Statistics/CharacterStatisticsSeeder.cs:192`)
+`CharacterStatisticsSeeder.SeedAuthoritativeStatistics` (`WaywardBeyond.Gameplay/Statistics/CharacterStatisticsSeeder.cs:209`)
 seeds vitals and restores `wb:buff.<id>.remaining_ticks` relative to the world's current
 sim tick from `CharacterEntityData.Statistics` on rejoin, or seeds from bounded
 `CharacterState.Statistics` (`WaywardBeyond.Data/Nsd/levels.nsd:77`) and defaults on first
-join. `ServerJoinSystem` queues a save whenever a player leaves,
-disconnects, or replaces an active session. Character locations and surviving stats are
-also captured and upserted with each full save. The playtime stamping rules are unchanged
-(`PlayClock.Advance`).
+join. When an Adventure character rejoins while `wb:dead == 1` is persisted in `level.db`,
+the seeder restores zero health and saved death metadata, and `ServerJoinSystem`
+(`WaywardBeyond.Server/Systems/ServerJoinSystem.cs:364`) omits the starter loadout and
+strips `wb:hotbar` and `wb:backpack` when `wb:death_has_container == 1` while keeping
+`wb:wearables` and `wb:augments`. A stale client `profile.db` inventory cannot duplicate
+items already stored in a Death-Container. `ServerJoinSystem` queues a save whenever a
+player leaves, disconnects, or replaces an active session. `ServerDeathService` also
+queues a character location save on death and on respawn. Character locations and
+surviving stats are also captured and upserted with each full save. The playtime
+stamping rules are unchanged (`PlayClock.Advance`).
 
 ### Server autosave
 
@@ -223,8 +249,9 @@ Character inventories persist sparsely as `KeyedSlotEntry[]? Inventory` on
 (`WaywardBeyond.Data/Nsd/levels.nsd:74`). `CharacterSaveManager` writes
 `ToSparseEntries()` on save (`WaywardBeyond.Client/Saves/CharacterSaveManager.cs:80`).
 A `null` `Inventory` signals a new character and grants the starter loadout on
-join (`WaywardBeyond.Server/Systems/ServerJoinSystem.cs:353`). An empty non-null
-array signals an intentionally emptied inventory that never restocks.
+join (`WaywardBeyond.Server/Systems/ServerJoinSystem.cs:364`) unless the character
+is rejoining dead in `level.db`. An empty non-null array signals an intentionally
+emptied inventory that never restocks.
 
 ## Serialization and data versioning
 
@@ -262,7 +289,7 @@ no shared broker process to manage.
 - `WaywardBeyond.Server/Saves/SqliteLevelCatalog.cs`
 - `WaywardBeyond.Server/Generation/LevelGenerator.cs`
 - `WaywardBeyond.Server/Saves/LevelSaveService.cs`
-- `WaywardBeyond.Server/Systems/{IServerBrickEntityDecorator,InventoryBrickEntityDecorator,MachineBrickEntityDecorator,ServerBrickEntityService,ServerBrickEntitySystem}.cs`
+- `WaywardBeyond.Server/Systems/{IServerBrickEntityDecorator,InventoryBrickEntityDecorator,MachineBrickEntityDecorator,ServerBrickEntityService,ServerBrickEntitySystem,ServerDeathService,ServerDeathSystem}.cs`
 - `WaywardBeyond.Gameplay/BrickEntityId.cs`
 - `WaywardBeyond.Gameplay/Components/BrickAnchorComponent.cs`
 - `WaywardBeyond.Data/Components/{MachineStateComponent,MachineStatusFlags}.cs`
@@ -284,4 +311,5 @@ no shared broker process to manage.
 - `WaywardBeyond.Tests/CharacterLocationSaveTests.cs` pins join inventory seeding and non-restocking rules.
 - `WaywardBeyond.Tests/ServerJoinStatisticsTests.cs` pins join stat seeding, Adventure Mode bounds, expired buff pruning on leave and rejoin, and client durable stat merging.
 - `WaywardBeyond.Tests/BrickEntityTests.cs` pins `level.db` `brick_entities` save/load round-trips keyed by `(VoxelEntityUuid, Int3)`, starter wreck and blueprint brick-entity allocation with cargo seeding, and orphaned record pruning.
+- `WaywardBeyond.Tests/DeathAndRespawnTests.cs` pins Death-Container `level.db` structure save, reload with expanded cargo capacity, auto-despawn deletion, per-level death state persistence, client `profile.db` death-stat stripping, and disconnect-while-dead rejoin anti-duplication.
 - No tests pin the playtime rules.
