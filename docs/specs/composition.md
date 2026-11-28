@@ -48,9 +48,9 @@ overrides after the engine builds
 |---|---|---|
 | `WaywardBeyond.Networking` | `RegisterNetworking()` | `NetworkRegistry` and the built-in wire components |
 | `WaywardBeyond.Config` | `RegisterNetworkingConfig()` | `network.toml` config, its sub-config views, and validation |
-| `WaywardBeyond.Data` | `RegisterDataServices()` | shared data services (`Migrator`, `SeedPhraseService`, `ISlotGroupSchemaDatabase` / `SlotGroupSchemaDatabase`), bundled blueprints, HUD bars, buffs, tags, and the content pack version entry point |
+| `WaywardBeyond.Data` | `RegisterDataServices()` | shared data services (`Migrator`, `SeedPhraseService`, `ISlotGroupSchemaDatabase` / `SlotGroupSchemaDatabase`), bundled blueprints, bars, buffs, tags, and the content pack version entry point |
 | `WaywardBeyond.Data` (blueprints) | `BlueprintComposition.RegisterBundledBlueprints()` | headless bundled `.wbp` database (`IBundledBlueprintDatabase`) and parser (`BlueprintDataParser`) |
-| `WaywardBeyond.Data` (HUD bars) | `HudBarComposition.RegisterHudBars()` | headless HUD bar database (`IHudBarDatabase`, `IAssetDatabase<HudBar>`) and `TomlParser<HudBarDefinitions>` |
+| `WaywardBeyond.Data` (bars) | `BarComposition.RegisterBars()` | headless bar database (`IBarDatabase`, `IAssetDatabase<Bar>`) and `TomlParser<BarDefinitions>` |
 | `WaywardBeyond.Data` (buffs) | `BuffComposition.RegisterBuffs()` | headless buff database (`IBuffDatabase`, `IAssetDatabase<Buff>`) and `TomlParser<BuffDefinitions>` |
 | `WaywardBeyond.Data` (localization) | `LocalizationComposition.RegisterTags()` | localized tag database and parser |
 | `WaywardBeyond.Server` | `RegisterHost()`, `RegisterServer()` | host wire-up, server composition |
@@ -124,7 +124,7 @@ new shared singleton to that list, or a world silently gets a private copy.
 - `WaywardBeyond.Config/ConfigComposition.cs`
 - `WaywardBeyond.Data/DataComposition.cs`
 - `WaywardBeyond.Data/Blueprints/BlueprintComposition.cs`
-- `WaywardBeyond.Data/HudBars/HudBarComposition.cs`
+- `WaywardBeyond.Data/Bars/BarComposition.cs`
 - `WaywardBeyond.Data/Buffs/BuffComposition.cs`
 - `WaywardBeyond.Data/Localization/LocalizationComposition.cs`
 - `WaywardBeyond.Permissions/PermissionsComposition.cs`

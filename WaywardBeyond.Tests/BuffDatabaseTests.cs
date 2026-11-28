@@ -264,7 +264,7 @@ public sealed class BuffDatabaseTests
             using var container = new Container();
             container.RegisterInstance(vfs);
             container.RegisterInstance<ILogger<BuffDatabase>>(NullLogger<BuffDatabase>.Instance);
-            container.RegisterInstance<ILogger<Data.HudBars.HudBarDatabase>>(NullLogger<Data.HudBars.HudBarDatabase>.Instance);
+            container.RegisterInstance<ILogger<Data.Bars.BarDatabase>>(NullLogger<Data.Bars.BarDatabase>.Instance);
             container.RegisterInstance<ILogger<Data.Localization.LocalizedTagsDatabase>>(NullLogger<Data.Localization.LocalizedTagsDatabase>.Instance);
             container.RegisterInstance<ILogger<Data.Blueprints.BundledBlueprintDatabase>>(NullLogger<Data.Blueprints.BundledBlueprintDatabase>.Instance);
             container.Register<IFileParseService, VirtualFileParseService>(Reuse.Singleton);

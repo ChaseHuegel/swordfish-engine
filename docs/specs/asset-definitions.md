@@ -1,11 +1,11 @@
 # Asset Definition TOML Formats
 
 One subject: the TOML config types that define game content (items, bricks,
-materials, recipes, skills, HUD bars, buffs). Item definitions live under
+materials, recipes, skills, bars, buffs). Item definitions live under
 `WaywardBeyond.Items/assets/`. Brick definitions live in
 `WaywardBeyond.Bricks/assets/`. Recipe definitions load from `recipes/` across
 mounted modules such as `WaywardBeyond.Recipes/`. Skill definitions live in
-`WaywardBeyond.Skills/assets/`. HUD bar definitions load from `hud_bars/` and
+`WaywardBeyond.Skills/assets/`. Bar definitions load from `bars/` and
 buff definitions load from `buffs/` across mounted modules. Brick and item
 localization stays client-owned.
 
@@ -14,7 +14,7 @@ Parser registration: `WaywardBeyond.Items/Injector.cs:15`
 (`RegisterTomlParser<BrickDefinitions>`), `WaywardBeyond.Recipes/Injector.cs:17`
 (`RegisterTomlParser<RecipeDefinitions>`), `WaywardBeyond.Skills/Injector.cs:16`
 (`RegisterTomlParser<SkillDefinitions>`), and
-`WaywardBeyond.Data/DataComposition.cs:28-29` (`RegisterHudBars`, `RegisterBuffs`).
+`WaywardBeyond.Data/DataComposition.cs:28-29` (`RegisterBars`, `RegisterBuffs`).
 
 ## Items (`assets/items/*.toml`)
 
@@ -462,9 +462,9 @@ Body-named tag lists live in `WaywardBeyond.Client/assets/lang/en/tags/`
 | `Gender` | `Gender` | gender categorization (`Neutral`, `Male`, `Female`) |
 | `[Bodies.States.<state>]` | map: direction tag → texture path list | state tag free-form (`standing`, `floating`, ...) |
 
-## HUD Bars (`assets/hud_bars/*.toml`)
+## Bars (`assets/bars/*.toml`)
 
-HUD bars live in the shared `WaywardBeyond.Data` module under `WaywardBeyond.Data/HudBars/`. `DataComposition.RegisterDataServices` (`WaywardBeyond.Data/DataComposition.cs:28`) registers `TomlParser<HudBarDefinitions>`, `IHudBarDatabase`, and `IAssetDatabase<HudBar>`. Each file declares a `[[HudBars]]` table array.
+Bars live in the shared `WaywardBeyond.Data` module under `WaywardBeyond.Data/Bars/`. `DataComposition.RegisterDataServices` (`WaywardBeyond.Data/DataComposition.cs:28`) registers `TomlParser<BarDefinitions>`, `IBarDatabase`, and `IAssetDatabase<Bar>`. Each file declares a `[[Bars]]` table array.
 
 | Field | Type | Notes |
 |---|---|---|
@@ -482,7 +482,7 @@ HUD bars live in the shared `WaywardBeyond.Data` module under `WaywardBeyond.Dat
 | `HideInCreative` | bool | hides the bar in Creative mode (defaults to `false`) |
 | `ColorTint` | string? | optional hex sRGBA color parsed through `HexColor.TryParseRgba` |
 
-Validation through `HudBar.Validate` (`WaywardBeyond.Data/HudBars/HudBar.cs:61-137`) returns `Result<HudBar>`. It rejects blank ids, blank stat or icon keys, missing `MaxStatId` without a positive finite `DefaultMax`, `IconCount < 1`, thresholds outside `[0, 1]`, `CriticalThreshold > WarnThreshold`, and blank or invalid hex tints.
+Validation through `Bar.Validate` (`WaywardBeyond.Data/Bars/Bar.cs:61-137`) returns `Result<Bar>`. It rejects blank ids, blank stat or icon keys, missing `MaxStatId` without a positive finite `DefaultMax`, `IconCount < 1`, thresholds outside `[0, 1]`, `CriticalThreshold > WarnThreshold`, and blank or invalid hex tints.
 
 ## Buffs (`assets/buffs/*.toml`)
 
@@ -531,7 +531,7 @@ bits. See [seed-phrases](seed-phrases.md).
 - `WaywardBeyond.Bricks/BrickEventKind.cs`
 - `WaywardBeyond.Data/Localization/LocalizedTagsDefinition.cs`
 - `WaywardBeyond.Data/Localization/LocalizedTagValues.cs`
-- `WaywardBeyond.Data/HudBars/{HudBarDefinitions,HudBarDefinition,HudBar,IHudBarDatabase,HudBarDatabase,HudBarComposition}.cs`
+- `WaywardBeyond.Data/Bars/{BarDefinitions,BarDefinition,Bar,IBarDatabase,BarDatabase,BarComposition}.cs`
 - `WaywardBeyond.Data/Buffs/{BuffDefinitions,BuffDefinition,BuffStatModifierDefinition,BuffRegenRateDefinition,Buff,BuffStackPolicy,BuffStatModifier,BuffRegenRate,IBuffDatabase,BuffDatabase,BuffComposition}.cs`
 - `WaywardBeyond.Data/DataComposition.cs`
 - `WaywardBeyond.Bodies/{BodyDefinitions,BodyDefinition,Body,Gender,BodyDatabase}.cs`
@@ -574,5 +574,5 @@ occurrence order, and the invariant merge into each language.
 `WaywardBeyond.AssetTools.Tests/Validation/ValidationEngineTests.cs` pin
 `[Bricks.Statistics]` and `[Items.Statistics]` parsing, fallback defaults, and
 `STAT001` validation findings.
-`WaywardBeyond.Tests/HudBarDatabaseTests.cs` pins `hud_bars/*.toml` `TomlParser<HudBarDefinitions>` parsing, defaults, `ColorTint` parsing, ordering, and validation failures.
+`WaywardBeyond.Tests/BarDatabaseTests.cs` pins `bars/*.toml` `TomlParser<BarDefinitions>` parsing, defaults, `ColorTint` parsing, ordering, and validation failures.
 `WaywardBeyond.Tests/BuffDatabaseTests.cs` pins `buffs/*.toml` `TomlParser<BuffDefinitions>` parsing, stack policies, stat modifiers, data-driven regen rates, and validation failures.

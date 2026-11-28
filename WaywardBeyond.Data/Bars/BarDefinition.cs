@@ -1,9 +1,9 @@
-namespace WaywardBeyond.Data.HudBars;
+namespace WaywardBeyond.Data.Bars;
 
-/// <summary>TOML schema for a data-driven HUD icon bar definition.</summary>
-public struct HudBarDefinition()
+/// <summary>TOML schema for a data-driven icon bar definition.</summary>
+public struct BarDefinition()
 {
-    /// <summary>Unique namespaced HUD bar ID (for example <c>wb:health</c>).</summary>
+    /// <summary>Unique namespaced bar ID (for example <c>wb:health</c>).</summary>
     public string? ID { get; set; }
 
     /// <summary>Stat ID providing the bar's current value.</summary>
@@ -15,7 +15,7 @@ public struct HudBarDefinition()
     /// <summary>Optional fallback maximum used when <see cref="MaxStatId"/> is omitted or absent.</summary>
     public float? DefaultMax { get; set; }
 
-    /// <summary>Optional number of discrete icons rendered across the bar (defaults to <see cref="HudBar.DEFAULT_ICON_COUNT"/>).</summary>
+    /// <summary>Optional number of discrete icons rendered across the bar (defaults to <see cref="Bar.DEFAULT_ICON_COUNT"/>).</summary>
     public int? IconCount { get; set; }
 
     /// <summary>Texture asset key for a full icon step.</summary>

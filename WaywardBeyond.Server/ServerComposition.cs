@@ -14,9 +14,9 @@ using WaywardBeyond.Server.Systems;
 using WaywardBeyond.Bricks;
 using WaywardBeyond.Config;
 using WaywardBeyond.Data;
+using WaywardBeyond.Data.Bars;
 using WaywardBeyond.Data.Blueprints;
 using WaywardBeyond.Data.Buffs;
-using WaywardBeyond.Data.HudBars;
 using WaywardBeyond.Data.Localization;
 using WaywardBeyond.Gameplay;
 using WaywardBeyond.Gameplay.Interactions;
@@ -177,7 +177,7 @@ public static class ServerComposition
         {
             container.Resolve<ILocalizedTagsDatabase>(IfUnresolved.ReturnDefault);
             container.Resolve<IBundledBlueprintDatabase>(IfUnresolved.ReturnDefault);
-            container.Resolve<IHudBarDatabase>(IfUnresolved.ReturnDefault);
+            container.Resolve<IBarDatabase>(IfUnresolved.ReturnDefault);
             container.Resolve<IBuffDatabase>(IfUnresolved.ReturnDefault);
         }
     }

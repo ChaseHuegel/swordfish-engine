@@ -11,27 +11,27 @@ using Swordfish.Library.IO;
 using Swordfish.Library.Serialization.Toml;
 using Swordfish.Library.Util;
 using WaywardBeyond.Data;
-using WaywardBeyond.Data.HudBars;
+using WaywardBeyond.Data.Bars;
 using Xunit;
 
 namespace WaywardBeyond.Tests;
 
-/// <summary>Covers TOML parsing, validation failures, ordering, and DI wiring for <see cref="HudBar"/>.</summary>
-public sealed class HudBarDatabaseTests
+/// <summary>Covers TOML parsing, validation failures, ordering, and DI wiring for <see cref="Bar"/>.</summary>
+public sealed class BarDatabaseTests
 {
     [Fact]
-    public void LoadsHudBarsInOrderAndParsesColorTint()
+    public void LoadsBarsInOrderAndParsesColorTint()
     {
         string tempRoot = CreateTempAssetsDir();
         try
         {
-            string barsDir = Path.Combine(tempRoot, "hud_bars");
+            string barsDir = Path.Combine(tempRoot, "bars");
             Directory.CreateDirectory(barsDir);
 
             File.WriteAllText(
                 Path.Combine(barsDir, "oxygen.toml"),
                 """
-                [[HudBars]]
+                [[Bars]]
                 ID = "wb:oxygen"
                 StatId = "wb:oxygen"
                 MaxStatId = "wb:oxygen_max"
@@ -50,7 +50,7 @@ public sealed class HudBarDatabaseTests
             File.WriteAllText(
                 Path.Combine(barsDir, "extras.toml"),
                 """
-                [[HudBars]]
+                [[Bars]]
                 ID = "wb:health"
                 StatId = "wb:health"
                 MaxStatId = "wb:health_max"
@@ -63,7 +63,7 @@ public sealed class HudBarDatabaseTests
                 Order = 1
                 HideInCreative = true
 
-                [[HudBars]]
+                [[Bars]]
                 ID = "mod:shield"
                 StatId = "mod:shield"
                 DefaultMax = 50
@@ -76,13 +76,13 @@ public sealed class HudBarDatabaseTests
                 """
             );
 
-            HudBarDatabase database = LoadDatabase(tempRoot);
+            BarDatabase database = LoadDatabase(tempRoot);
 
             Assert.Equal(["wb:health", "wb:oxygen", "mod:shield"], database.All.Select(b => b.ID).ToArray());
 
-            Result<HudBar> oxygenResult = database.Get("wb:oxygen");
+            Result<Bar> oxygenResult = database.Get("wb:oxygen");
             Assert.True(oxygenResult.Success);
-            HudBar oxygen = oxygenResult.Value;
+            Bar oxygen = oxygenResult.Value;
             Assert.Equal("wb:oxygen", oxygen.StatId);
             Assert.Equal("wb:oxygen_max", oxygen.MaxStatId);
             Assert.Equal(10, oxygen.IconCount);
@@ -93,7 +93,7 @@ public sealed class HudBarDatabaseTests
             Assert.True(oxygen.ColorTintRgba.HasValue);
             Assert.Equal(new Vector4(0x38 / 255f, 0xB7 / 255f, 0x64 / 255f, 1f), oxygen.ColorTintRgba!.Value);
 
-            Result<HudBar> shieldResult = database.Get("mod:shield");
+            Result<Bar> shieldResult = database.Get("mod:shield");
             Assert.True(shieldResult.Success);
             Assert.Null(shieldResult.Value.MaxStatId);
             Assert.Equal(50f, shieldResult.Value.DefaultMax);
@@ -107,18 +107,18 @@ public sealed class HudBarDatabaseTests
     }
 
     [Fact]
-    public void RejectsInvalidAndDuplicateHudBarsWhileKeepingValidRows()
+    public void RejectsInvalidAndDuplicateBarsWhileKeepingValidRows()
     {
         string tempRoot = CreateTempAssetsDir();
         try
         {
-            string barsDir = Path.Combine(tempRoot, "hud_bars");
+            string barsDir = Path.Combine(tempRoot, "bars");
             Directory.CreateDirectory(barsDir);
 
             File.WriteAllText(
                 Path.Combine(barsDir, "mixed.toml"),
                 """
-                [[HudBars]]
+                [[Bars]]
                 ID = "wb:valid"
                 StatId = "wb:health"
                 MaxStatId = "wb:health_max"
@@ -129,28 +129,28 @@ public sealed class HudBarDatabaseTests
                 WarnThreshold = 0.4
                 CriticalThreshold = 0.2
 
-                [[HudBars]]
+                [[Bars]]
                 StatId = "wb:health"
                 DefaultMax = 100
                 IconFull = "full.png"
                 IconHalf = "half.png"
                 IconEmpty = "empty.png"
 
-                [[HudBars]]
+                [[Bars]]
                 ID = "wb:missing_stat"
                 DefaultMax = 100
                 IconFull = "full.png"
                 IconHalf = "half.png"
                 IconEmpty = "empty.png"
 
-                [[HudBars]]
+                [[Bars]]
                 ID = "wb:missing_max"
                 StatId = "wb:health"
                 IconFull = "full.png"
                 IconHalf = "half.png"
                 IconEmpty = "empty.png"
 
-                [[HudBars]]
+                [[Bars]]
                 ID = "wb:non_positive_default_max"
                 StatId = "wb:health"
                 DefaultMax = 0
@@ -158,7 +158,7 @@ public sealed class HudBarDatabaseTests
                 IconHalf = "half.png"
                 IconEmpty = "empty.png"
 
-                [[HudBars]]
+                [[Bars]]
                 ID = "wb:bad_icon_count"
                 StatId = "wb:health"
                 DefaultMax = 100
@@ -167,14 +167,14 @@ public sealed class HudBarDatabaseTests
                 IconHalf = "half.png"
                 IconEmpty = "empty.png"
 
-                [[HudBars]]
+                [[Bars]]
                 ID = "wb:missing_half_icon"
                 StatId = "wb:health"
                 DefaultMax = 100
                 IconFull = "full.png"
                 IconEmpty = "empty.png"
 
-                [[HudBars]]
+                [[Bars]]
                 ID = "wb:bad_threshold_range"
                 StatId = "wb:health"
                 DefaultMax = 100
@@ -184,7 +184,7 @@ public sealed class HudBarDatabaseTests
                 WarnThreshold = 1.2
                 CriticalThreshold = 0.2
 
-                [[HudBars]]
+                [[Bars]]
                 ID = "wb:inverted_thresholds"
                 StatId = "wb:health"
                 DefaultMax = 100
@@ -194,7 +194,7 @@ public sealed class HudBarDatabaseTests
                 WarnThreshold = 0.2
                 CriticalThreshold = 0.5
 
-                [[HudBars]]
+                [[Bars]]
                 ID = "wb:bad_color"
                 StatId = "wb:health"
                 DefaultMax = 100
@@ -203,7 +203,7 @@ public sealed class HudBarDatabaseTests
                 IconEmpty = "empty.png"
                 ColorTint = "not-a-hex"
 
-                [[HudBars]]
+                [[Bars]]
                 ID = "wb:blank_color"
                 StatId = "wb:health"
                 DefaultMax = 100
@@ -212,7 +212,7 @@ public sealed class HudBarDatabaseTests
                 IconEmpty = "empty.png"
                 ColorTint = "   "
 
-                [[HudBars]]
+                [[Bars]]
                 ID = "wb:valid"
                 StatId = "wb:other"
                 DefaultMax = 50
@@ -225,7 +225,7 @@ public sealed class HudBarDatabaseTests
             File.WriteAllText(
                 Path.Combine(barsDir, "wrong_type.toml"),
                 """
-                [[HudBars]]
+                [[Bars]]
                 ID = "wb:wrong_type"
                 StatId = "wb:health"
                 DefaultMax = 100
@@ -238,9 +238,9 @@ public sealed class HudBarDatabaseTests
 
             File.WriteAllText(Path.Combine(barsDir, "corrupt.toml"), "ID = [broken");
 
-            HudBarDatabase database = LoadDatabase(tempRoot);
+            BarDatabase database = LoadDatabase(tempRoot);
 
-            HudBar loaded = Assert.Single(database.All);
+            Bar loaded = Assert.Single(database.All);
             Assert.Equal("wb:valid", loaded.ID);
             Assert.Equal("wb:health", loaded.StatId);
             Assert.False(database.Get("wb:missing_stat").Success);
@@ -253,7 +253,7 @@ public sealed class HudBarDatabaseTests
             Assert.False(database.Get("wb:bad_color").Success);
             Assert.False(database.Get("wb:blank_color").Success);
             Assert.False(database.Get("wb:wrong_type").Success);
-            Assert.False(database.All is System.Collections.Generic.List<HudBar>);
+            Assert.False(database.All is System.Collections.Generic.List<Bar>);
         }
         finally
         {
@@ -267,12 +267,12 @@ public sealed class HudBarDatabaseTests
         string tempRoot = CreateTempAssetsDir();
         try
         {
-            string barsDir = Path.Combine(tempRoot, "hud_bars");
+            string barsDir = Path.Combine(tempRoot, "bars");
             Directory.CreateDirectory(barsDir);
             File.WriteAllText(
                 Path.Combine(barsDir, "health.toml"),
                 """
-                [[HudBars]]
+                [[Bars]]
                 ID = "wb:health"
                 StatId = "wb:health"
                 MaxStatId = "wb:health_max"
@@ -287,7 +287,7 @@ public sealed class HudBarDatabaseTests
 
             using var container = new Container();
             container.RegisterInstance(vfs);
-            container.RegisterInstance<ILogger<HudBarDatabase>>(NullLogger<HudBarDatabase>.Instance);
+            container.RegisterInstance<ILogger<BarDatabase>>(NullLogger<BarDatabase>.Instance);
             container.RegisterInstance<ILogger<Data.Buffs.BuffDatabase>>(NullLogger<Data.Buffs.BuffDatabase>.Instance);
             container.RegisterInstance<ILogger<Data.Localization.LocalizedTagsDatabase>>(NullLogger<Data.Localization.LocalizedTagsDatabase>.Instance);
             container.RegisterInstance<ILogger<Data.Blueprints.BundledBlueprintDatabase>>(NullLogger<Data.Blueprints.BundledBlueprintDatabase>.Instance);
@@ -295,14 +295,14 @@ public sealed class HudBarDatabaseTests
             container.RegisterDataServices();
             container.RegisterDataServices();
 
-            IAssetDatabase<HudBar> assetDb = container.Resolve<IAssetDatabase<HudBar>>();
-            IHudBarDatabase typedDb = container.Resolve<IHudBarDatabase>();
+            IAssetDatabase<Bar> assetDb = container.Resolve<IAssetDatabase<Bar>>();
+            IBarDatabase typedDb = container.Resolve<IBarDatabase>();
 
             Assert.Same(assetDb, typedDb);
             Assert.True(assetDb.Get("wb:health").Success);
             Assert.Single(typedDb.All);
-            Assert.Single(container.ResolveMany<IFileParser>(), p => p is TomlParser<HudBarDefinitions>);
-            Assert.Single(container.ResolveMany<Shoal.DependencyInjection.IAutoActivate>(), a => a is HudBarDatabase);
+            Assert.Single(container.ResolveMany<IFileParser>(), p => p is TomlParser<BarDefinitions>);
+            Assert.Single(container.ResolveMany<Shoal.DependencyInjection.IAutoActivate>(), a => a is BarDatabase);
         }
         finally
         {
@@ -311,26 +311,26 @@ public sealed class HudBarDatabaseTests
     }
 
     [Fact]
-    public void DataCompositionSkipsHudBarDatabaseRegistrationWithoutVfs()
+    public void DataCompositionSkipsBarDatabaseRegistrationWithoutVfs()
     {
         using var container = new Container();
-        container.RegisterHudBars();
+        container.RegisterBars();
 
-        Assert.False(container.IsRegistered<IHudBarDatabase>());
+        Assert.False(container.IsRegistered<IBarDatabase>());
         Assert.Empty(container.ResolveMany<Shoal.DependencyInjection.IAutoActivate>());
     }
 
-    private static HudBarDatabase LoadDatabase(string assetsRoot)
+    private static BarDatabase LoadDatabase(string assetsRoot)
     {
         var vfs = new VirtualFileSystem();
         Assert.True(vfs.Mount(new PathInfo(assetsRoot)).Success);
-        var parser = new VirtualFileParseService([new TomlParser<HudBarDefinitions>()], vfs);
-        return new HudBarDatabase(NullLogger<HudBarDatabase>.Instance, parser, vfs);
+        var parser = new VirtualFileParseService([new TomlParser<BarDefinitions>()], vfs);
+        return new BarDatabase(NullLogger<BarDatabase>.Instance, parser, vfs);
     }
 
     private static string CreateTempAssetsDir()
     {
-        string path = Path.Combine(Path.GetTempPath(), $"wb-hudbars-{Guid.NewGuid():N}");
+        string path = Path.Combine(Path.GetTempPath(), $"wb-bars-{Guid.NewGuid():N}");
         Directory.CreateDirectory(path);
         return path;
     }
