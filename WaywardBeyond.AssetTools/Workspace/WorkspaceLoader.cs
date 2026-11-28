@@ -939,6 +939,11 @@ public sealed class WorkspaceLoader
             }
         }
 
+        if (item.Consumable.HasValue)
+        {
+            AddRefIfPresent(refs, in asset, "Consumable.BuffID", item.Consumable.Value.BuffID, "buff", isInformational: false);
+        }
+
         if (item.ViewModel.HasValue)
         {
             AddRefIfPresent(refs, in asset, "ViewModel.Mesh", item.ViewModel.Value.Mesh, "mesh", isInformational: false);

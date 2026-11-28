@@ -486,6 +486,8 @@ internal static class AssetSeedProjector
         var slotGroupSlots = new List<(int Index, List<string> AllowedTags)>();
         var buffStatModifiers = new List<(string StatId, string FlatDelta, string PercentDelta)>();
         var buffRegenRates = new List<(string StatId, string PerSecond)>();
+        var itemHasConsumable = false;
+        var itemConsumableModifiers = new List<(string StatId, string FlatDelta, string PercentDelta)>();
         string? bodyFrontPath = null;
         string? materialTexturePath = null;
         string? paintTexturePath = null;
@@ -496,7 +498,7 @@ internal static class AssetSeedProjector
                 PopulateBrickFields(in brick, scalars, colliders, statistics);
                 break;
             case ItemDefinition item:
-                PopulateItemFields(in item, scalars, statistics);
+                itemHasConsumable = PopulateItemFields(in item, scalars, statistics, itemConsumableModifiers);
                 break;
             case PaintDefinition paint:
                 paintTexturePath = PopulatePaintFields(workspace, in paint, scalars);
@@ -557,6 +559,8 @@ internal static class AssetSeedProjector
             SlotGroupSlots = slotGroupSlots,
             BuffStatModifiers = buffStatModifiers,
             BuffRegenRates = buffRegenRates,
+            ItemHasConsumable = itemHasConsumable,
+            ItemConsumableModifiers = itemConsumableModifiers,
             ResolvedBodyFrontTexturePath = bodyFrontPath,
             ResolvedMaterialTexturePath = materialTexturePath,
             ResolvedPaintTexturePath = paintTexturePath,
@@ -620,10 +624,11 @@ internal static class AssetSeedProjector
         }
     }
 
-    private static void PopulateItemFields(
+    private static bool PopulateItemFields(
         in ItemDefinition item,
         Dictionary<string, string> scalars,
-        List<(string Key, float Value)> itemStatistics)
+        List<(string Key, float Value)> itemStatistics,
+        List<(string StatId, string FlatDelta, string PercentDelta)> consumableModifiers)
     {
         scalars["Name"] = item.Name ?? string.Empty;
         scalars["Description"] = item.Description ?? string.Empty;
@@ -650,6 +655,30 @@ internal static class AssetSeedProjector
         {
             scalars["ToolType"] = "none";
             scalars["ToolTarget"] = string.Empty;
+        }
+
+        var hasConsumable = item.Consumable.HasValue;
+        if (item.Consumable.HasValue)
+        {
+            var consumable = item.Consumable.Value;
+            scalars["ConsumableBuffID"] = consumable.BuffID ?? string.Empty;
+            scalars["ConsumableCooldownSeconds"] = consumable.CooldownSeconds.ToString("0.####", CultureInfo.InvariantCulture);
+            if (consumable.Modifiers != null)
+            {
+                for (var i = 0; i < consumable.Modifiers.Count; i++)
+                {
+                    var mod = consumable.Modifiers[i];
+                    consumableModifiers.Add((
+                        mod.StatId ?? string.Empty,
+                        mod.FlatDelta.HasValue ? mod.FlatDelta.Value.ToString("0.####", CultureInfo.InvariantCulture) : string.Empty,
+                        mod.PercentDelta.HasValue ? mod.PercentDelta.Value.ToString("0.####", CultureInfo.InvariantCulture) : string.Empty));
+                }
+            }
+        }
+        else
+        {
+            scalars["ConsumableBuffID"] = string.Empty;
+            scalars["ConsumableCooldownSeconds"] = "0";
         }
 
         if (item.Statistics != null)
@@ -679,6 +708,8 @@ internal static class AssetSeedProjector
             scalars["WorldModelRotation"] = FormatFloat3(wm.Rotation.X, wm.Rotation.Y, wm.Rotation.Z);
             scalars["WorldModelScale"] = FormatFloat3(wm.Scale.X, wm.Scale.Y, wm.Scale.Z);
         }
+
+        return hasConsumable;
     }
 
     private static string? PopulatePaintFields(
@@ -1289,6 +1320,31 @@ internal static class AssetSeedProjector
                 detail));
         }
 
+        foreach (var buff in workspace.GetWinningAssetsByKind(ToolsWorkspace.AssetKind.Buff))
+        {
+            var p = buff.Provenance;
+            string? buffThumb = null;
+            var detail = p.RelativePath;
+            if (buff.AuthoritativeDefinition is BuffDefinition buffDef)
+            {
+                if (!string.IsNullOrWhiteSpace(buffDef.Icon))
+                {
+                    buffThumb = ResolveTextureDiskPath(workspace, buffDef.Icon);
+                }
+
+                detail = $"{buffDef.DurationSeconds:0.##}s · {p.RelativePath}";
+            }
+
+            list.Add(new ReferenceCandidate(
+                buff.Id,
+                ReferenceKind.BuffId,
+                MapProvenance(studioMode, in p),
+                ReferenceResolutionState.Resolved,
+                p.ProviderRootName,
+                detail,
+                ThumbnailPath: buffThumb));
+        }
+
         var sortedBlueprints = new List<KeyValuePair<string, string>>(workspace.WinningBlueprintFiles);
         sortedBlueprints.Sort(static (left, right) => StringComparer.OrdinalIgnoreCase.Compare(left.Key, right.Key));
         for (var i = 0; i < sortedBlueprints.Count; i++)
@@ -1785,6 +1841,8 @@ internal static class AssetSeedProjector
             "Placeable.Type" or "Items.Placeable.Type" => "PlaceableType",
             "Tool.Type" or "Items.Tool.Type" => "ToolType",
             "Tool.Target" or "Items.Tool.Target" => "ToolTarget",
+            "Consumable.BuffID" or "Items.Consumable.BuffID" => "ConsumableBuffID",
+            "Consumable.CooldownSeconds" or "Items.Consumable.CooldownSeconds" => "ConsumableCooldownSeconds",
             "ViewModel.Mesh" => "ViewModelMesh",
             "ViewModel.Material" => "ViewModelMaterial",
             "WorldModel.Mesh" => "WorldModelMesh",

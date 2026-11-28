@@ -64,4 +64,9 @@ public enum ReferenceKind
     ///     Namespaced inventory slot group identifier.
     /// </summary>
     SlotGroupId,
+
+    /// <summary>
+    ///     Namespaced buff asset identifier.
+    /// </summary>
+    BuffId,
 }

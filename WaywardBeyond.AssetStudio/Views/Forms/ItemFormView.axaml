@@ -21,6 +21,117 @@
       </StackPanel>
     </controls:CollapsibleSectionCard>
 
+    <!-- Consumable ([Items.Consumable] & [[Items.Consumable.Modifiers]]) -->
+    <controls:CollapsibleSectionCard Title="Consumable"
+                                     Subtitle="{Binding ItemConsumableSummary}"
+                                     IsExpanded="{Binding HasConsumable}">
+      <controls:CollapsibleSectionCard.HeaderAction>
+        <StackPanel Orientation="Horizontal" Spacing="6">
+          <Button Classes="studio-btn-compact"
+                  IsVisible="{Binding !HasConsumable}"
+                  IsEnabled="{Binding !IsReadOnly}"
+                  Command="{Binding EnableItemConsumableCommand}"
+                  Content="+ Enable Consumable" />
+          <Button Classes="studio-btn-compact"
+                  IsVisible="{Binding HasConsumable}"
+                  IsEnabled="{Binding !IsReadOnly}"
+                  Command="{Binding RemoveItemConsumableCommand}"
+                  ToolTip.Tip="Remove [Items.Consumable] and all consumable modifiers from this item"
+                  Content="Remove Consumable" />
+        </StackPanel>
+      </controls:CollapsibleSectionCard.HeaderAction>
+      <StackPanel Spacing="6">
+        <TextBlock IsVisible="{Binding !HasConsumable}"
+                   Text="This item is not consumable. Click '+ Enable Consumable' to configure cooldown, buff, and statistic modifiers."
+                   FontSize="11"
+                   TextWrapping="Wrap"
+                   Foreground="{DynamicResource StudioTextMutedBrush}" />
+
+        <StackPanel IsVisible="{Binding HasConsumable}" Spacing="6">
+          <StackPanel Spacing="2">
+            <controls:ScalarFieldRowControl DataContext="{Binding ItemConsumableBuffIdField}" />
+            <controls:ScalarFieldRowControl DataContext="{Binding ItemConsumableCooldownField}" />
+          </StackPanel>
+
+          <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8">
+            <TextBlock Grid.Column="0"
+                       Text="One-shot statistic modifiers applied in declaration order on use ([[Items.Consumable.Modifiers]])."
+                       FontSize="11"
+                       TextWrapping="Wrap"
+                       Foreground="{DynamicResource StudioTextMutedBrush}"
+                       VerticalAlignment="Center" />
+            <Button Grid.Column="1"
+                    Classes="studio-btn-compact"
+                    Command="{Binding AddItemConsumableModifierCommand}"
+                    IsEnabled="{Binding !IsReadOnly}"
+                    Content="+ Add Modifier" />
+          </Grid>
+
+          <Border CornerRadius="6"
+                  BorderBrush="{DynamicResource StudioBorderBrush}"
+                  BorderThickness="1"
+                  ClipToBounds="True">
+            <StackPanel>
+              <Border Background="{DynamicResource StudioSurfaceElevatedBrush}" Padding="8,6">
+                <Grid ColumnDefinitions="*,100,100,28" ColumnSpacing="6">
+                  <TextBlock Grid.Column="0" Text="STAT ID" Classes="pane-title" VerticalAlignment="Center" />
+                  <TextBlock Grid.Column="1" Text="FLAT DELTA" Classes="pane-title" VerticalAlignment="Center" />
+                  <TextBlock Grid.Column="2" Text="PERCENT DELTA" Classes="pane-title" VerticalAlignment="Center" />
+                </Grid>
+              </Border>
+
+              <TextBlock IsVisible="{Binding ItemConsumableHasNoModifiers}"
+                         Text="No consumable modifiers configured."
+                         FontSize="11.5"
+                         Foreground="{DynamicResource StudioTextMutedBrush}"
+                         Margin="10,10" />
+
+              <ItemsControl ItemsSource="{Binding ItemConsumableModifiers}">
+                <ItemsControl.ItemTemplate>
+                  <DataTemplate x:DataType="vm:ConsumableStatModifierRowViewModel">
+                    <Border BorderBrush="{DynamicResource StudioBorderBrush}" BorderThickness="0,1,0,0" Padding="8,4">
+                      <Grid ColumnDefinitions="*,100,100,28" ColumnSpacing="6">
+                        <TextBox Grid.Column="0"
+                                 Text="{Binding StatId, Mode=TwoWay}"
+                                 IsReadOnly="{Binding IsReadOnly}"
+                                 IsUndoEnabled="False"
+                                 Watermark="wb:health"
+                                 Classes="studio-input mono" />
+                        <TextBox Grid.Column="1"
+                                 Text="{Binding FlatDelta, Mode=TwoWay}"
+                                 IsReadOnly="{Binding IsReadOnly}"
+                                 IsUndoEnabled="False"
+                                 Watermark="optional"
+                                 Classes="studio-input mono" />
+                        <TextBox Grid.Column="2"
+                                 Text="{Binding PercentDelta, Mode=TwoWay}"
+                                 IsReadOnly="{Binding IsReadOnly}"
+                                 IsUndoEnabled="False"
+                                 Watermark="0.25"
+                                 Classes="studio-input mono" />
+                        <Button Grid.Column="3"
+                                Classes="studio-btn-ghost"
+                                Width="26"
+                                Height="26"
+                                MinHeight="26"
+                                Padding="0"
+                                IsEnabled="{Binding $parent[UserControl].((vm:AssetDocumentViewModel)DataContext).CanEditDocument}"
+                                Command="{Binding $parent[UserControl].((vm:AssetDocumentViewModel)DataContext).RemoveItemConsumableModifierCommand}"
+                                CommandParameter="{Binding}"
+                                ToolTip.Tip="Remove consumable modifier">
+                          <TextBlock Text="×" FontSize="14" />
+                        </Button>
+                      </Grid>
+                    </Border>
+                  </DataTemplate>
+                </ItemsControl.ItemTemplate>
+              </ItemsControl>
+            </StackPanel>
+          </Border>
+        </StackPanel>
+      </StackPanel>
+    </controls:CollapsibleSectionCard>
+
     <!-- Statistics (extensible key-value numeric attributes such as wb:mining_speed) -->
     <controls:CollapsibleSectionCard Title="Statistics"
                                      Subtitle="Custom numeric attributes (e.g. wb:mining_speed)"
