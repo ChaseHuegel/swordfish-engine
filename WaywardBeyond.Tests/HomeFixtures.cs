@@ -91,7 +91,6 @@ internal static class HomeFixtures
             1UL,
             _Playtime: new Playtime(),
             "Ada",
-            0, 0, 0, 0, 0, 0,
             _Body: "human",
             _ActiveInventorySlot: 0,
             _GameMode: GameMode.Creative,

@@ -29,7 +29,6 @@ public class PlayerCharacterEntityBuilderTests
             1UL,
             _Playtime: new Playtime(),
             "Test",
-            0, 0, 0, 0, 0, 0,
             _Body: string.Empty,
             _ActiveInventorySlot: 0,
             _GameMode: GameMode.Creative,

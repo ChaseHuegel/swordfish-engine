@@ -13,6 +13,7 @@ using WaywardBeyond.Client.UI.Components;
 using WaywardBeyond.Client.UI.Layers.Menus.Modal;
 using WaywardBeyond.Data;
 using WaywardBeyond.Data.Characters;
+using WaywardBeyond.Data.Statistics;
 using WaywardBeyond.Skills;
 
 namespace WaywardBeyond.Client.UI.Layers.Menus.Main;
@@ -131,13 +132,20 @@ internal sealed class SelectCharacterPage : IMenuPage<MenuPage>
     {
         return
         [
-            new StatRowState("ui.label.character.strength", character.Strength.ToString()),
-            new StatRowState("ui.label.character.precision", character.Precision.ToString()),
-            new StatRowState("ui.label.character.awareness", character.Awareness.ToString()),
-            new StatRowState("ui.label.character.charisma", character.Charisma.ToString()),
-            new StatRowState("ui.label.character.education", character.Education.ToString()),
-            new StatRowState("ui.label.character.resolve", character.Resolve.ToString()),
+            new StatRowState("ui.label.character.strength", GetAttribute(in character, StatisticIds.STRENGTH).ToString()),
+            new StatRowState("ui.label.character.precision", GetAttribute(in character, StatisticIds.PRECISION).ToString()),
+            new StatRowState("ui.label.character.awareness", GetAttribute(in character, StatisticIds.AWARENESS).ToString()),
+            new StatRowState("ui.label.character.charisma", GetAttribute(in character, StatisticIds.CHARISMA).ToString()),
+            new StatRowState("ui.label.character.education", GetAttribute(in character, StatisticIds.EDUCATION).ToString()),
+            new StatRowState("ui.label.character.resolve", GetAttribute(in character, StatisticIds.RESOLVE).ToString()),
         ];
+    }
+
+    private static long GetAttribute(in Character character, string statId)
+    {
+        return character.Statistics != null && character.Statistics.TryGet(statId, out Statistic stat)
+            ? stat.Value
+            : StatisticIds.MIN_ATTRIBUTE;
     }
 
     private void SelectCharacter(string uuid)

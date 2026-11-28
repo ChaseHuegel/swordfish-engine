@@ -36,26 +36,23 @@ public static class StatisticIds
     /// <summary>Environmental pressurization flag stat ID (0 = vacuum, 1 = pressurized).</summary>
     public const string PRESSURIZED = "wb:pressurized";
 
-    /// <summary>Prefix for S.P.A.C.E.R. attribute stat IDs.</summary>
-    public const string ATTR_PREFIX = "wb:attr.";
-
     /// <summary>S.P.A.C.E.R. Strength attribute stat ID.</summary>
-    public const string ATTR_STRENGTH = "wb:attr.strength";
+    public const string STRENGTH = "wb:strength";
 
-    /// <summary>S.P.A.C.E.R. Perception attribute stat ID.</summary>
-    public const string ATTR_PERCEPTION = "wb:attr.perception";
+    /// <summary>S.P.A.C.E.R. Precision attribute stat ID.</summary>
+    public const string PRECISION = "wb:precision";
 
-    /// <summary>S.P.A.C.E.R. Agility attribute stat ID.</summary>
-    public const string ATTR_AGILITY = "wb:attr.agility";
+    /// <summary>S.P.A.C.E.R. Awareness attribute stat ID.</summary>
+    public const string AWARENESS = "wb:awareness";
 
-    /// <summary>S.P.A.C.E.R. Constitution attribute stat ID.</summary>
-    public const string ATTR_CONSTITUTION = "wb:attr.constitution";
+    /// <summary>S.P.A.C.E.R. Charisma attribute stat ID.</summary>
+    public const string CHARISMA = "wb:charisma";
 
-    /// <summary>S.P.A.C.E.R. Engineering attribute stat ID.</summary>
-    public const string ATTR_ENGINEERING = "wb:attr.engineering";
+    /// <summary>S.P.A.C.E.R. Education attribute stat ID.</summary>
+    public const string EDUCATION = "wb:education";
 
-    /// <summary>S.P.A.C.E.R. Resilience attribute stat ID.</summary>
-    public const string ATTR_RESILIENCE = "wb:attr.resilience";
+    /// <summary>S.P.A.C.E.R. Resolve attribute stat ID.</summary>
+    public const string RESOLVE = "wb:resolve";
 
     /// <summary>Kinetic collision damage resistance modifier stat ID (fixed-point).</summary>
     public const string KINETIC_RESIST = "wb:kinetic_resist";
@@ -96,15 +93,15 @@ public static class StatisticIds
     /// <summary>Upper bound on persisted server-side vital maximums in fixed-point units.</summary>
     public const long MAX_VITAL_FIXED = 1_000_000L * FIXED_POINT_SCALE;
 
-    /// <summary>Ordered S.P.A.C.E.R. attribute stat IDs matching Strength through Resilience.</summary>
+    /// <summary>Ordered S.P.A.C.E.R. attribute stat IDs matching Strength through Resolve.</summary>
     public static readonly ImmutableArray<string> BaseAttributeIds =
     [
-        ATTR_STRENGTH,
-        ATTR_PERCEPTION,
-        ATTR_AGILITY,
-        ATTR_CONSTITUTION,
-        ATTR_ENGINEERING,
-        ATTR_RESILIENCE,
+        STRENGTH,
+        PRECISION,
+        AWARENESS,
+        CHARISMA,
+        EDUCATION,
+        RESOLVE,
     ];
 
     /// <summary>Converts a finite floating-point stat value into fixed-point representation.</summary>
@@ -202,9 +199,15 @@ public static class StatisticIds
             return true;
         }
 
-        return statId.Length > ATTR_PREFIX.Length
-            && statId.StartsWith(ATTR_PREFIX.AsSpan(), StringComparison.Ordinal)
-            && !statId[ATTR_PREFIX.Length..].IsWhiteSpace();
+        for (var i = 0; i < BaseAttributeIds.Length; i++)
+        {
+            if (statId.Equals(BaseAttributeIds[i].AsSpan(), StringComparison.Ordinal))
+            {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     /// <summary>Returns whether <paramref name="statId"/> names any buff timer entry (active expiry or persisted remaining ticks).</summary>

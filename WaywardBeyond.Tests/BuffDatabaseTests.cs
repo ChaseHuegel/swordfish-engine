@@ -46,7 +46,7 @@ public sealed class BuffDatabaseTests
                 flat_delta = 20
 
                 [[stat_modifiers]]
-                stat_id = "wb:attr.constitution"
+                stat_id = "wb:resolve"
                 percent_delta = 0.1
                 """
             );
@@ -93,7 +93,7 @@ public sealed class BuffDatabaseTests
             Assert.Equal(2, wellFed.StatModifiers.Count);
             Assert.False(wellFed.StatModifiers is BuffStatModifier[]);
             Assert.Equal(new BuffStatModifier("wb:health_max", FlatDelta: 20f), wellFed.StatModifiers[0]);
-            Assert.Equal(new BuffStatModifier("wb:attr.constitution", PercentDelta: 0.1f), wellFed.StatModifiers[1]);
+            Assert.Equal(new BuffStatModifier("wb:resolve", PercentDelta: 0.1f), wellFed.StatModifiers[1]);
 
             BuffDefinition oxygenBoost = database.Get("wb:oxygen_boost").Value;
             Assert.Equal(BuffStackPolicy.Extend, oxygenBoost.StackPolicy);

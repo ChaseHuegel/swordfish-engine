@@ -16,6 +16,7 @@ using WaywardBeyond.Client.Services;
 using WaywardBeyond.Client.UI.Layers.Menus.Modal;
 using WaywardBeyond.Data;
 using WaywardBeyond.Data.Characters;
+using WaywardBeyond.Data.Statistics;
 
 namespace WaywardBeyond.Client.UI.Layers.Menus.Main;
 
@@ -365,21 +366,25 @@ internal sealed class NewCharacterPage : IMenuPage<MenuPage>
             return;
         }
 
+        Statistic[] initialStatistics =
+        [
+            new(StatisticIds.STRENGTH, _strength),
+            new(StatisticIds.PRECISION, _precision),
+            new(StatisticIds.AWARENESS, _awareness),
+            new(StatisticIds.CHARISMA, _charisma),
+            new(StatisticIds.EDUCATION, _education),
+            new(StatisticIds.RESOLVE, _resolve),
+        ];
+
         var character = new Character(
             WaywardBeyond.Version,
             Uuid.NewUuid().ToValue(),
             _Playtime: new Playtime(),
             nameValue,
-            _strength,
-            _precision,
-            _awareness,
-            _charisma,
-            _education,
-            _resolve,
             _Body: CurrentBodyId(),
             _ActiveInventorySlot: 0,
             _GameMode: GameMode.Creative,
-            _Statistics: null,
+            _Statistics: initialStatistics,
             _Inventory: null
         );
 

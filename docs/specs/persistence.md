@@ -48,12 +48,13 @@ contract and `StorageConfig.BlueprintRoot`.
 The client owns `profile.db`. `characters` stores one raw nsd blob per
 character uuid. `CharacterSaveManager.Save` (`WaywardBeyond.Client/Saves/CharacterSaveManager.cs:49-108`)
 merges durable namespaced replicated stats from `StatisticsComponent` into
-`Character.Statistics` (`WaywardBeyond.Data/Nsd/saves.nsd:68`) through
-`StatisticsPersistence.MergeClientStatistics`. It preserves skill XP
-and counters and strips transient `wb:pressurized`, `wb:buff.<id>.expires_tick`, and
-`wb:buff.<id>.remaining_ticks` keys. On join,
-`ClientJoinSystem` sends `StatisticsPersistence.WithCharacterAttributes` (`WaywardBeyond.Client/Systems/ClientJoinSystem.cs:141`)
-so edited S.P.A.C.E.R. attributes travel alongside saved vitals. `level_metadata` stores
+`Character.Statistics` (`WaywardBeyond.Data/Nsd/saves.nsd:61`) through
+`StatisticsPersistence.MergeClientStatistics`. S.P.A.C.E.R. attributes
+(`wb:strength`, `wb:precision`, `wb:awareness`, `wb:charisma`, `wb:education`,
+`wb:resolve`) live directly in `Character.Statistics` from character creation.
+The merge preserves skill XP and counters and strips transient `wb:pressurized`,
+`wb:buff.<id>.expires_tick`, and `wb:buff.<id>.remaining_ticks` keys.
+`level_metadata` stores
 one raw nsd blob per level guid; the
 model is `LevelMetadata` (`WaywardBeyond.Data/Nsd/saves.nsd`), a wrapper
 around the shared `Playtime` value so client-local per-level fields can be
@@ -131,7 +132,7 @@ buff expiry ticks into tick-independent `wb:buff.<id>.remaining_ticks` counts so
 restarts preserve remaining buff duration. It keeps the
 pending record in memory until the worker commits it, so an immediate rejoin reads the
 latest transform, game mode, and `CharacterEntityData.Statistics`
-(`WaywardBeyond.Data/Nsd/saves.nsd:112`) through `GetCharacterEntity`. A character with
+(`WaywardBeyond.Data/Nsd/saves.nsd:105`) through `GetCharacterEntity`. A character with
 no row in the level starts at `Level.Spawn` with `Level.DefaultGameMode`.
 `CharacterStatisticsSeeder.SeedAuthoritativeStatistics` (`WaywardBeyond.Gameplay/Statistics/CharacterStatisticsSeeder.cs:192`)
 seeds vitals and restores `wb:buff.<id>.remaining_ticks` relative to the world's current
@@ -194,9 +195,9 @@ cadence. Its autosave timer saves the character only. Pause, F5, and close call
 autosaves the level.
 
 Character inventories persist sparsely as `KeyedSlotEntry[]? Inventory` on
-`Character` (`WaywardBeyond.Data/Nsd/saves.nsd:70`) and `CharacterState`
+`Character` (`WaywardBeyond.Data/Nsd/saves.nsd:63`) and `CharacterState`
 (`WaywardBeyond.Data/Nsd/levels.nsd:74`). `CharacterSaveManager` writes
-`ToSparseEntries()` on save (`WaywardBeyond.Client/Saves/CharacterSaveManager.cs:82`).
+`ToSparseEntries()` on save (`WaywardBeyond.Client/Saves/CharacterSaveManager.cs:80`).
 A `null` `Inventory` signals a new character and grants the starter loadout on
 join (`WaywardBeyond.Server/Systems/ServerJoinSystem.cs:351`). An empty non-null
 array signals an intentionally emptied inventory that never restocks.

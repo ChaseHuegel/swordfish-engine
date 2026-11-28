@@ -53,13 +53,6 @@ message Character
     
     string Name = 4;
     
-    int Strength = 5;
-    int Precision = 6;
-    int Awareness = 7;
-    int Charisma = 8;
-    int Education = 9;
-    int Resolve = 10;
-    
     string Body = 11;
     
     int ActiveInventorySlot = 12;

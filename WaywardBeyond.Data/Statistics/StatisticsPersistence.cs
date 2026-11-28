@@ -53,23 +53,6 @@ public static class StatisticsPersistence
         return merged.Count == 0 ? null : [.. merged];
     }
 
-    /// <summary>Seeds S.P.A.C.E.R. attributes into a join-request statistic array when not already present.</summary>
-    public static Statistic[]? WithCharacterAttributes(in Character character)
-    {
-        Statistic[]? existing = character.Statistics;
-        var merged = new List<Statistic>((existing != null ? existing.Length : 0) + StatisticIds.BaseAttributeIds.Length);
-        CopyDurableEntries(existing, merged);
-
-        AddAttributeIfMissing(merged, StatisticIds.ATTR_STRENGTH, character.Strength);
-        AddAttributeIfMissing(merged, StatisticIds.ATTR_PERCEPTION, character.Precision);
-        AddAttributeIfMissing(merged, StatisticIds.ATTR_AGILITY, character.Awareness);
-        AddAttributeIfMissing(merged, StatisticIds.ATTR_CONSTITUTION, character.Charisma);
-        AddAttributeIfMissing(merged, StatisticIds.ATTR_ENGINEERING, character.Education);
-        AddAttributeIfMissing(merged, StatisticIds.ATTR_RESILIENCE, character.Resolve);
-
-        return merged.Count == 0 ? null : [.. merged];
-    }
-
     /// <summary>Replaces an existing entry matching <see cref="Statistic.ID"/> or appends <paramref name="entry"/>.</summary>
     public static void UpsertEntry(List<Statistic> entries, in Statistic entry)
     {
@@ -178,23 +161,5 @@ public static class StatisticsPersistence
         var filtered = new List<Statistic>(existing.Length);
         CopyDurableEntries(existing, filtered);
         return filtered.Count == 0 ? null : [.. filtered];
-    }
-
-    private static void AddAttributeIfMissing(List<Statistic> list, string id, int value)
-    {
-        if (value <= 0)
-        {
-            return;
-        }
-
-        for (var i = 0; i < list.Count; i++)
-        {
-            if (string.Equals(list[i].ID, id, StringComparison.Ordinal))
-            {
-                return;
-            }
-        }
-
-        list.Add(new Statistic(id, value));
     }
 }

@@ -60,13 +60,13 @@ public sealed class StatisticsReplicationTests
         var statsA = new StatisticsComponent();
         statsA.SetFixed(StatisticIds.HEALTH, 100f);
         statsA.SetFixed(StatisticIds.HEALTH_MAX, 100f);
-        statsA.SetValue(StatisticIds.ATTR_STRENGTH, 5L);
+        statsA.SetValue(StatisticIds.STRENGTH, 5L);
         harness.ServerStore.AddOrUpdate(clientA.ServerEntity, statsA);
 
         var statsB = new StatisticsComponent();
         statsB.SetFixed(StatisticIds.HEALTH, 80f);
         statsB.SetFixed(StatisticIds.HEALTH_MAX, 100f);
-        statsB.SetValue(StatisticIds.ATTR_STRENGTH, 2L);
+        statsB.SetValue(StatisticIds.STRENGTH, 2L);
         harness.ServerStore.AddOrUpdate(clientB.ServerEntity, statsB);
         harness.ClearAllDirty();
 
@@ -97,7 +97,7 @@ public sealed class StatisticsReplicationTests
 
         Assert.True(clientAStore.TryGet(localPlayerA, out StatisticsComponent clientStatsAfterJoin));
         Assert.Equal(100f, clientStatsAfterJoin.GetFixed(StatisticIds.HEALTH));
-        Assert.Equal(5L, clientStatsAfterJoin.GetValue(StatisticIds.ATTR_STRENGTH));
+        Assert.Equal(5L, clientStatsAfterJoin.GetValue(StatisticIds.STRENGTH));
 
         //  3. Delta mutation on client A replicates only to client A, never to client B.
         Assert.True(harness.ServerStore.SetStatisticFixed(clientA.ServerEntity, StatisticIds.HEALTH, 72.5f));

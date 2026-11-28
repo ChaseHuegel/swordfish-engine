@@ -82,8 +82,8 @@ public sealed class ServerJoinStatisticsTests
                 new Statistic(StatisticIds.OXYGEN, -500L),
                 new Statistic(StatisticIds.OXYGEN_MAX, 999_999L),
                 new Statistic(StatisticIds.PRESSURIZED, 1L),
-                new Statistic(StatisticIds.ATTR_STRENGTH, 99L),
-                new Statistic(StatisticIds.ATTR_PERCEPTION, -4L),
+                new Statistic(StatisticIds.STRENGTH, 99L),
+                new Statistic(StatisticIds.PRECISION, -4L),
                 new Statistic("wb:buff.godmode.expires_tick", 999_999L),
                 new Statistic("mining", 420L),
             ],
@@ -97,8 +97,8 @@ public sealed class ServerJoinStatisticsTests
         Assert.Equal(StatisticIds.DEFAULT_OXYGEN_MAX_FIXED, stats.GetValue(StatisticIds.OXYGEN_MAX));
         Assert.Equal(0L, stats.GetValue(StatisticIds.OXYGEN));
         Assert.False(stats.GetFlag(StatisticIds.PRESSURIZED));
-        Assert.Equal(StatisticIds.MAX_BASE_ATTRIBUTE, stats.GetValue(StatisticIds.ATTR_STRENGTH));
-        Assert.Equal(StatisticIds.MIN_ATTRIBUTE, stats.GetValue(StatisticIds.ATTR_PERCEPTION));
+        Assert.Equal(StatisticIds.MAX_BASE_ATTRIBUTE, stats.GetValue(StatisticIds.STRENGTH));
+        Assert.Equal(StatisticIds.MIN_ATTRIBUTE, stats.GetValue(StatisticIds.PRECISION));
         Assert.False(stats.TryGetBuffExpiresTick("godmode", out _));
         Assert.False(stats.TryGetValue("mining", out _));
     }
@@ -112,7 +112,7 @@ public sealed class ServerJoinStatisticsTests
             [
                 new Statistic(StatisticIds.HEALTH, 62_500L),
                 new Statistic(StatisticIds.OXYGEN, 45_000L),
-                new Statistic(StatisticIds.ATTR_AGILITY, 6L),
+                new Statistic(StatisticIds.AWARENESS, 6L),
             ],
         };
 
@@ -126,12 +126,12 @@ public sealed class ServerJoinStatisticsTests
         Assert.True(store.TryGet(adventurePlayer, out StatisticsComponent advStats));
         Assert.Equal(62.5f, advStats.GetFixed(StatisticIds.HEALTH));
         Assert.Equal(45f, advStats.GetFixed(StatisticIds.OXYGEN));
-        Assert.Equal(6L, advStats.GetValue(StatisticIds.ATTR_AGILITY));
+        Assert.Equal(6L, advStats.GetValue(StatisticIds.AWARENESS));
 
         Assert.True(store.TryGet(creativePlayer, out StatisticsComponent creativeStats));
         Assert.Equal(StatisticIds.DEFAULT_HEALTH_MAX, creativeStats.GetFixed(StatisticIds.HEALTH));
         Assert.Equal(StatisticIds.DEFAULT_OXYGEN_MAX, creativeStats.GetFixed(StatisticIds.OXYGEN));
-        Assert.Equal(6L, creativeStats.GetValue(StatisticIds.ATTR_AGILITY));
+        Assert.Equal(6L, creativeStats.GetValue(StatisticIds.AWARENESS));
     }
 
     [Fact]
@@ -142,28 +142,23 @@ public sealed class ServerJoinStatisticsTests
             77UL,
             _Playtime: new Playtime(),
             "Ada",
-            5, 3, 4, 2, 6, 1,
             _Body: "wb:human_f",
             _ActiveInventorySlot: 0,
             _GameMode: GameMode.Adventure,
             _Statistics:
             [
+                new Statistic(StatisticIds.STRENGTH, 5L),
+                new Statistic(StatisticIds.PRECISION, 3L),
+                new Statistic(StatisticIds.AWARENESS, 4L),
+                new Statistic(StatisticIds.CHARISMA, 2L),
+                new Statistic(StatisticIds.EDUCATION, 6L),
+                new Statistic(StatisticIds.RESOLVE, 1L),
                 new Statistic("mining", 250L),
                 new Statistic("bricks.broken", 14L),
                 new Statistic("bricks.broken:wb:rock", 25L),
             ],
             _Inventory: null
         );
-
-        Statistic[]? joinStats = StatisticsPersistence.WithCharacterAttributes(in character);
-        Assert.NotNull(joinStats);
-        Assert.Contains(joinStats!, s => s.ID == "mining" && s.Value == 250L);
-        Assert.Contains(joinStats!, s => s.ID == StatisticIds.ATTR_STRENGTH && s.Value == 5L);
-        Assert.Contains(joinStats!, s => s.ID == StatisticIds.ATTR_PERCEPTION && s.Value == 3L);
-        Assert.Contains(joinStats!, s => s.ID == StatisticIds.ATTR_AGILITY && s.Value == 4L);
-        Assert.Contains(joinStats!, s => s.ID == StatisticIds.ATTR_CONSTITUTION && s.Value == 2L);
-        Assert.Contains(joinStats!, s => s.ID == StatisticIds.ATTR_ENGINEERING && s.Value == 6L);
-        Assert.Contains(joinStats!, s => s.ID == StatisticIds.ATTR_RESILIENCE && s.Value == 1L);
 
         var storage = new CapturingCharacterStorage();
         var activeSave = new ActiveCharacterSave { ActiveSave = character };
@@ -189,7 +184,7 @@ public sealed class ServerJoinStatisticsTests
         liveStats.SetFixed(StatisticIds.OXYGEN_MAX, 100f);
         liveStats.SetFlag(StatisticIds.PRESSURIZED, true);
         liveStats.SetBuffExpiresTick("wb:well_fed", 5000L);
-        liveStats.SetValue(StatisticIds.ATTR_STRENGTH, 7L);
+        liveStats.SetValue(StatisticIds.STRENGTH, 7L);
         liveStats.SetFixed("mod:shield", 25f);
         liveStats.SetValue("bricks.broken:wb:rock", 14L);
         liveStats.SetValue("bricks.placed:wb:rock", 3L);
@@ -216,7 +211,8 @@ public sealed class ServerJoinStatisticsTests
         Assert.Contains(persisted.Statistics!, s => s.ID == "bricks.broken:wb:rock" && s.Value == 25L);
         Assert.Contains(persisted.Statistics!, s => s.ID == StatisticIds.HEALTH && s.Value == 68_500L);
         Assert.Contains(persisted.Statistics!, s => s.ID == StatisticIds.OXYGEN && s.Value == 40_000L);
-        Assert.Contains(persisted.Statistics!, s => s.ID == StatisticIds.ATTR_STRENGTH && s.Value == 7L);
+        Assert.Contains(persisted.Statistics!, s => s.ID == StatisticIds.STRENGTH && s.Value == 7L);
+        Assert.Contains(persisted.Statistics!, s => s.ID == StatisticIds.PRECISION && s.Value == 3L);
         Assert.Contains(persisted.Statistics!, s => s.ID == "mod:shield" && s.Value == 25_000L);
         Assert.DoesNotContain(persisted.Statistics!, s => s.ID == "bricks.placed:wb:rock");
         Assert.DoesNotContain(persisted.Statistics!, s => s.ID == " :malformed");
@@ -243,7 +239,7 @@ public sealed class ServerJoinStatisticsTests
                 Name = "Ada",
                 Body = "wb:human_f",
                 GameMode = GameMode.Adventure,
-                Statistics = [new Statistic(StatisticIds.ATTR_STRENGTH, 5L)],
+                Statistics = [new Statistic(StatisticIds.STRENGTH, 5L)],
             },
         };
 
@@ -271,7 +267,7 @@ public sealed class ServerJoinStatisticsTests
         Assert.Equal(42.5f, rejoinedStats.GetFixed(StatisticIds.HEALTH));
         Assert.Equal(120f, rejoinedStats.GetFixed(StatisticIds.HEALTH_MAX));
         Assert.Equal(33f, rejoinedStats.GetFixed(StatisticIds.OXYGEN));
-        Assert.Equal(5L, rejoinedStats.GetValue(StatisticIds.ATTR_STRENGTH));
+        Assert.Equal(5L, rejoinedStats.GetValue(StatisticIds.STRENGTH));
         Assert.False(rejoinedStats.GetFlag(StatisticIds.PRESSURIZED));
         Assert.True(rejoinedStats.TryGetBuffExpiresTick("wb:well_fed", out long activeExpiry));
         Assert.Equal(500L, activeExpiry);

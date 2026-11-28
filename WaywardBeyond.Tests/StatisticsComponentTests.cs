@@ -172,7 +172,7 @@ public sealed class StatisticsComponentTests
         int entity = store.Alloc();
 
         var stats = new StatisticsComponent();
-        stats.SetValue(StatisticIds.ATTR_CONSTITUTION, 5L);
+        stats.SetValue(StatisticIds.RESOLVE, 5L);
         stats.SetFlag(StatisticIds.PRESSURIZED, true);
         stats.SetFixed(StatisticIds.HEALTH_MAX, 120f);
         stats.SetFixed("mod:jump_boost", 2.5f);
@@ -181,20 +181,20 @@ public sealed class StatisticsComponentTests
 
         var resolver = new StatResolver([new EntityStatisticModifierSource()]);
 
-        float constitution = resolver.Evaluate(new StatQuery(StatisticIds.ATTR_CONSTITUTION, defaultBase: 0f, subject: StatSubject.Entity, store: store, entity: entity));
+        float resolve = resolver.Evaluate(new StatQuery(StatisticIds.RESOLVE, defaultBase: 0f, subject: StatSubject.Entity, store: store, entity: entity));
         float pressurized = resolver.Evaluate(new StatQuery(StatisticIds.PRESSURIZED, defaultBase: 0f, subject: StatSubject.Entity, store: store, entity: entity));
         float healthMax = resolver.Evaluate(new StatQuery(StatisticIds.HEALTH_MAX, defaultBase: 0f, subject: StatSubject.Entity, store: store, entity: entity));
         float jumpBoost = resolver.Evaluate(new StatQuery("mod:jump_boost", defaultBase: 1f, subject: StatSubject.Entity, store: store, entity: entity));
         float buffExpiry = resolver.Evaluate(new StatQuery(StatisticIds.BuffExpiresTick("wb:well_fed"), defaultBase: 0f, subject: StatSubject.Entity, store: store, entity: entity));
 
-        Assert.Equal(5f, constitution, precision: 5);
+        Assert.Equal(5f, resolve, precision: 5);
         Assert.Equal(1f, pressurized, precision: 5);
         Assert.Equal(120f, healthMax, precision: 5);
         Assert.Equal(3.5f, jumpBoost, precision: 5);
         Assert.Equal(0f, buffExpiry, precision: 5);
 
         Assert.True(StatisticIds.IsNamespacedStatId("wb:health"));
-        Assert.True(StatisticIds.IsNamespacedStatId("wb:attr.strength"));
+        Assert.True(StatisticIds.IsNamespacedStatId("wb:strength"));
         Assert.True(StatisticIds.IsNamespacedStatId("mod:shield"));
         Assert.True(StatisticIds.IsNamespacedStatId("my_mod:mana.max"));
         Assert.False(StatisticIds.IsNamespacedStatId("bricks.broken:wb:rock"));
