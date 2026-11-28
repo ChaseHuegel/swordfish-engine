@@ -194,7 +194,8 @@ internal sealed class ClientReconcileSystem(
 
             if (store.TryGet(entity, out VoxelComponent _))
             {
-                VoxelEntityBuilder.FreeChunks(store, entity);
+                VoxelEntityBuilder.Destroy(store, entity);
+                continue;
             }
 
             //  Free captures every component removal; the engine releases their native resources.

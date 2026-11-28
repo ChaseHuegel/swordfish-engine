@@ -488,6 +488,8 @@ internal static class AssetSeedProjector
         var buffRegenRates = new List<(string StatId, string PerSecond)>();
         var itemHasConsumable = false;
         var itemConsumableModifiers = new List<(string StatId, string FlatDelta, string PercentDelta)>();
+        var brickHasEntityLight = false;
+        var brickEntitySlotGroups = new List<(string GroupId, string Capacity)>();
         string? bodyFrontPath = null;
         string? materialTexturePath = null;
         string? paintTexturePath = null;
@@ -495,7 +497,7 @@ internal static class AssetSeedProjector
         switch (asset.AuthoritativeDefinition)
         {
             case BrickDefinition brick:
-                PopulateBrickFields(in brick, scalars, colliders, statistics);
+                brickHasEntityLight = PopulateBrickFields(in brick, scalars, colliders, statistics, brickEntitySlotGroups);
                 break;
             case ItemDefinition item:
                 itemHasConsumable = PopulateItemFields(in item, scalars, statistics, itemConsumableModifiers);
@@ -561,6 +563,8 @@ internal static class AssetSeedProjector
             BuffRegenRates = buffRegenRates,
             ItemHasConsumable = itemHasConsumable,
             ItemConsumableModifiers = itemConsumableModifiers,
+            BrickHasEntityLight = brickHasEntityLight,
+            BrickEntitySlotGroups = brickEntitySlotGroups,
             ResolvedBodyFrontTexturePath = bodyFrontPath,
             ResolvedMaterialTexturePath = materialTexturePath,
             ResolvedPaintTexturePath = paintTexturePath,
@@ -568,11 +572,12 @@ internal static class AssetSeedProjector
         };
     }
 
-    private static void PopulateBrickFields(
+    private static bool PopulateBrickFields(
         in BrickDefinition brick,
         Dictionary<string, string> scalars,
         List<(string Type, string Size, string Offset, string Rotation)> colliders,
-        List<(string Key, float Value)> statistics)
+        List<(string Key, float Value)> statistics,
+        List<(string GroupId, string Capacity)> entitySlotGroups)
     {
         scalars["Shape"] = brick.Shape.ToString();
         scalars["Color"] = NormalizeHexOrDefault(brick.Color, "#FFFFFF");
@@ -622,6 +627,42 @@ internal static class AssetSeedProjector
                 statistics.Add((stat.Key, stat.Value));
             }
         }
+
+        var hasEntityLight = false;
+        if (brick.Entity != null)
+        {
+            var entity = brick.Entity.Value;
+            if (entity.Light != null)
+            {
+                hasEntityLight = true;
+                var light = entity.Light.Value;
+                scalars["EntityLightRadius"] = light.Radius.HasValue
+                    ? light.Radius.Value.ToString("0.####", CultureInfo.InvariantCulture)
+                    : string.Empty;
+                scalars["EntityLightSize"] = light.Size.ToString("0.####", CultureInfo.InvariantCulture);
+                scalars["EntityLightColor"] = NormalizeHexOrDefault(light.Color, "#FFFFFF");
+                scalars["EntityLightIntensity"] = light.Intensity.ToString("0.####", CultureInfo.InvariantCulture);
+                scalars["EntityLightCastShadows"] = light.CastShadows.HasValue
+                    ? (light.CastShadows.Value ? "true" : "false")
+                    : "auto";
+                scalars["EntityLightOffset"] = FormatFloat3(light.Offset.X, light.Offset.Y, light.Offset.Z);
+                scalars["EntityLightTintFromPaint"] = light.TintFromPaint ? "true" : "false";
+            }
+
+            if (entity.SlotGroups != null)
+            {
+                for (var i = 0; i < entity.SlotGroups.Count; i++)
+                {
+                    var group = entity.SlotGroups[i];
+                    var cap = group.Capacity.HasValue
+                        ? group.Capacity.Value.ToString(CultureInfo.InvariantCulture)
+                        : string.Empty;
+                    entitySlotGroups.Add((group.ID ?? string.Empty, cap));
+                }
+            }
+        }
+
+        return hasEntityLight;
     }
 
     private static bool PopulateItemFields(

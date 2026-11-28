@@ -21,7 +21,7 @@
                                      Subtitle="Custom numeric attributes (e.g. wb:hardness)"
                                      IsExpanded="{Binding HasStatistics}">
       <StackPanel Spacing="6">
-        <Grid ColumnDefinitions="*,Auto,Auto" ColumnSpacing="6">
+        <Grid ColumnDefinitions="*,Auto,Auto,Auto" ColumnSpacing="6">
           <TextBlock Grid.Column="0"
                      Text="Define any built-in or mod statistic key in [Bricks.Statistics]."
                      FontSize="11"
@@ -33,6 +33,11 @@
                   IsEnabled="{Binding !IsReadOnly}"
                   Content="+ Hardness" />
           <Button Grid.Column="2"
+                  Classes="studio-btn-compact"
+                  Command="{Binding AddPowerKwStatisticCommand}"
+                  IsEnabled="{Binding !IsReadOnly}"
+                  Content="+ Power (kW)" />
+          <Button Grid.Column="3"
                   Classes="studio-btn-compact"
                   Command="{Binding AddStatisticCommand}"
                   IsEnabled="{Binding !IsReadOnly}"
@@ -84,6 +89,111 @@
                                  FontSize="10.5"
                                  Foreground="{DynamicResource StudioDangerBrush}" />
                     </StackPanel>
+                  </Border>
+                </DataTemplate>
+              </ItemsControl.ItemTemplate>
+            </ItemsControl>
+          </StackPanel>
+        </Border>
+      </StackPanel>
+    </controls:CollapsibleSectionCard>
+
+    <!-- Entity Light -->
+    <controls:CollapsibleSectionCard Title="Entity Light"
+                                     Subtitle="Optional point-light config ([Bricks.Entity.Light])"
+                                     IsExpanded="{Binding BrickHasEntityLight}">
+      <StackPanel Spacing="6">
+        <Grid ColumnDefinitions="*,Auto,Auto" ColumnSpacing="6">
+          <TextBlock Grid.Column="0"
+                     Text="Attaches a data-driven LightComponent via LightEntityDecorator."
+                     FontSize="11"
+                     Foreground="{DynamicResource StudioTextMutedBrush}"
+                     VerticalAlignment="Center" />
+          <Button Grid.Column="1"
+                  Classes="studio-btn-compact"
+                  Command="{Binding EnableBrickEntityLightCommand}"
+                  IsVisible="{Binding !BrickHasEntityLight}"
+                  IsEnabled="{Binding !IsReadOnly}"
+                  Content="+ Add Entity Light" />
+          <Button Grid.Column="2"
+                  Classes="studio-btn-compact"
+                  Command="{Binding RemoveBrickEntityLightCommand}"
+                  IsVisible="{Binding BrickHasEntityLight}"
+                  IsEnabled="{Binding !IsReadOnly}"
+                  Content="Remove Light" />
+        </Grid>
+
+        <StackPanel Spacing="4" IsVisible="{Binding BrickHasEntityLight}">
+          <controls:ScalarFieldRowControl DataContext="{Binding BrickEntityLightColorField}" />
+          <controls:ScalarFieldRowControl DataContext="{Binding BrickEntityLightIntensityField}" />
+          <controls:ScalarFieldRowControl DataContext="{Binding BrickEntityLightRadiusField}" />
+          <controls:ScalarFieldRowControl DataContext="{Binding BrickEntityLightSizeField}" />
+          <controls:ScalarFieldRowControl DataContext="{Binding BrickEntityLightCastShadowsField}" />
+          <controls:ScalarFieldRowControl DataContext="{Binding BrickEntityLightOffsetField}" />
+          <controls:ScalarFieldRowControl DataContext="{Binding BrickEntityLightTintFromPaintField}" />
+        </StackPanel>
+      </StackPanel>
+    </controls:CollapsibleSectionCard>
+
+    <!-- Entity Slot Groups -->
+    <controls:CollapsibleSectionCard Title="Entity Slot Groups"
+                                     Subtitle="Inventory slot groups ([[Bricks.Entity.SlotGroups]])"
+                                     IsExpanded="{Binding HasBrickEntitySlotGroups}">
+      <StackPanel Spacing="6">
+        <Grid ColumnDefinitions="*,Auto" ColumnSpacing="6">
+          <TextBlock Grid.Column="0"
+                     Text="Provision keyed inventory slot groups on placed brick entities."
+                     FontSize="11"
+                     Foreground="{DynamicResource StudioTextMutedBrush}"
+                     VerticalAlignment="Center" />
+          <Button Grid.Column="1"
+                  Classes="studio-btn-compact"
+                  Command="{Binding AddBrickEntitySlotGroupCommand}"
+                  IsEnabled="{Binding !IsReadOnly}"
+                  Content="+ Add Slot Group" />
+        </Grid>
+
+        <Border CornerRadius="6"
+                BorderBrush="{DynamicResource StudioBorderBrush}"
+                BorderThickness="1"
+                ClipToBounds="True"
+                IsVisible="{Binding HasBrickEntitySlotGroups}">
+          <StackPanel>
+            <Border Background="{DynamicResource StudioSurfaceElevatedBrush}" Padding="8,6">
+              <Grid ColumnDefinitions="*,110,28" ColumnSpacing="8">
+                <TextBlock Grid.Column="0" Text="SLOT GROUP ID" Classes="pane-title" VerticalAlignment="Center" />
+                <TextBlock Grid.Column="1" Text="CAPACITY" Classes="pane-title" VerticalAlignment="Center" />
+              </Grid>
+            </Border>
+            <ItemsControl ItemsSource="{Binding BrickEntitySlotGroups}">
+              <ItemsControl.ItemTemplate>
+                <DataTemplate x:DataType="vm:BrickSlotGroupRowViewModel">
+                  <Border BorderBrush="{DynamicResource StudioBorderBrush}" BorderThickness="0,1,0,0" Padding="8,4">
+                    <Grid ColumnDefinitions="*,110,28" ColumnSpacing="8">
+                      <TextBox Grid.Column="0"
+                               Text="{Binding GroupId, Mode=TwoWay}"
+                               IsReadOnly="{Binding IsReadOnly}"
+                               IsUndoEnabled="False"
+                               Watermark="wb:cargo"
+                               Classes="studio-input mono" />
+                      <TextBox Grid.Column="1"
+                               Text="{Binding Capacity, Mode=TwoWay}"
+                               IsReadOnly="{Binding IsReadOnly}"
+                               IsUndoEnabled="False"
+                               Watermark="schema default"
+                               Classes="studio-input mono" />
+                      <Button Grid.Column="2"
+                              Classes="studio-btn-ghost"
+                              Width="26"
+                              Height="26"
+                              MinHeight="26"
+                              Padding="0"
+                              Command="{Binding $parent[UserControl].((vm:AssetDocumentViewModel)DataContext).RemoveBrickEntitySlotGroupCommand}"
+                              CommandParameter="{Binding}"
+                              ToolTip.Tip="Remove slot group">
+                        <TextBlock Text="×" FontSize="14" />
+                      </Button>
+                    </Grid>
                   </Border>
                 </DataTemplate>
               </ItemsControl.ItemTemplate>

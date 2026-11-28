@@ -299,6 +299,41 @@ public sealed class BrickEntityTests
         Assert.False(clientStore.TryGet(preservedEntity, out InventoryComponent _));
     }
 
+    [Fact]
+    public async Task ClientReconcileFreesChildBrickEntitiesWhenParentStructureDespawns()
+    {
+        BrickDatabase bricks = LoadShippedBricks();
+        using LoopbackHarness harness = LoopbackHarness.Create(bricks);
+        LoopbackClient viewer = await harness.AddPlayerClientAsync(Uuid.FromValue(2602), Vector3.Zero);
+        harness.ClearAllDirty();
+
+        Uuid structureUuid = Uuid.FromValue(91002);
+        var lightCoord = new Int3(0, 1, 0);
+        Uuid lightUuid = BrickEntityId.Derive(structureUuid, lightCoord);
+
+        var clientStore = new DataStore();
+        int localPlayer = clientStore.Alloc(viewer.EntityUuid);
+        clientStore.AddOrUpdate(localPlayer, new PlayerComponent());
+
+        int clientStructure = clientStore.Alloc(structureUuid);
+        clientStore.AddOrUpdate(clientStructure, new VoxelComponent(new VoxelObject(16)));
+
+        int clientLight = clientStore.Alloc(lightUuid);
+        clientStore.AddOrUpdate(clientLight, new BrickAnchorComponent(structureUuid, lightCoord));
+        clientStore.AddOrUpdate(clientLight, new ChildComponent(structureUuid) { LocalPosition = new Vector3(0f, 1f, 0f) });
+        clientStore.AddOrUpdate(clientLight, new LightComponent(radius: 15f, color: Vector3.One, size: 2.4f));
+
+        ClientReconcileSystem reconcile = CreateClientReconcile(viewer.Inbound, harness.Registry);
+        harness.Replication.RequestDespawn(structureUuid.ToValue());
+        harness.Replication.PublishStage(1f, harness.ServerStore);
+        WorldSnapshot despawnSnap = await viewer.WaitForSnapshotAsync();
+        viewer.Inbound.Snapshots.Enqueue(new ClientInbound.InboundSnapshot(despawnSnap));
+        TickReconcileWhilePlaying(reconcile, clientStore);
+
+        Assert.False(clientStore.TryGet(structureUuid, out _));
+        Assert.False(clientStore.TryGet(lightUuid, out _));
+    }
+
     private sealed class RecordingServerDecorator(string targetBrickId) : IServerBrickEntityDecorator
     {
         public int SpawnCount { get; private set; }

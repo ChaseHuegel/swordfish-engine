@@ -85,9 +85,317 @@ internal static class AssetTomlEditApplier
 
         if (payload.StatisticsModified && payload.Statistics != null)
         {
-            return ApplyStatisticsEdits(doc, "Bricks", brickOrdinal, payload.Statistics);
+            var statsResult = ApplyStatisticsEdits(doc, "Bricks", brickOrdinal, payload.Statistics);
+            if (!statsResult.Success)
+            {
+                return statsResult;
+            }
         }
 
+        var entityLightResult = ApplyBrickEntityLightEdits(doc, brickOrdinal, payload);
+        if (!entityLightResult.Success)
+        {
+            return entityLightResult;
+        }
+
+        if (payload.BrickEntitySlotGroupsModified && payload.BrickEntitySlotGroups != null)
+        {
+            var slotGroupsResult = ApplyBrickEntitySlotGroupsEdits(doc, brickOrdinal, payload.BrickEntitySlotGroups);
+            if (!slotGroupsResult.Success)
+            {
+                return slotGroupsResult;
+            }
+        }
+
+        return Result.FromSuccess();
+    }
+
+    private static Result ApplyBrickEntityLightEdits(
+        ToolsDocuments.TomlDocument doc,
+        int brickOrdinal,
+        DocumentSavePayload payload)
+    {
+        var lightFieldModified = payload.ModifiedFieldKeys == null
+            || payload.ModifiedFieldKeys.Contains("EntityLightRadius")
+            || payload.ModifiedFieldKeys.Contains("EntityLightSize")
+            || payload.ModifiedFieldKeys.Contains("EntityLightColor")
+            || payload.ModifiedFieldKeys.Contains("EntityLightIntensity")
+            || payload.ModifiedFieldKeys.Contains("EntityLightCastShadows")
+            || payload.ModifiedFieldKeys.Contains("EntityLightOffset")
+            || payload.ModifiedFieldKeys.Contains("EntityLightTintFromPaint");
+        if (!payload.BrickEntityLightModified && !lightFieldModified)
+        {
+            return Result.FromSuccess();
+        }
+
+        var ownerTable = ResolveArrayTableByOrdinal(doc, "Bricks", brickOrdinal);
+        if (ownerTable < 0)
+        {
+            return Result.FromSuccess();
+        }
+
+        var existingLight = FindOwnedSubTableIndex(doc, ownerTable, "Bricks", "Bricks.Entity.Light");
+        if (!payload.BrickHasEntityLight)
+        {
+            return existingLight >= 0
+                ? RemoveTableSection(doc, existingLight)
+                : Result.FromSuccess();
+        }
+
+        var sb = new StringBuilder();
+        var eol = doc.LineEnding;
+        sb.Append("[Bricks.Entity.Light]").Append(eol);
+
+        if (payload.FieldValues.TryGetValue("EntityLightRadius", out var rawRadius) && !string.IsNullOrWhiteSpace(rawRadius))
+        {
+            if (!double.TryParse(rawRadius.Trim(), NumberStyles.Float, CultureInfo.InvariantCulture, out var radius) || !double.IsFinite(radius) || radius < 0d)
+            {
+                return Result.FromFailure($"Cannot save [Bricks.Entity.Light]: invalid Radius '{rawRadius}'.");
+            }
+
+            sb.Append("Radius        = ").Append(FormatTomlFloat(radius)).Append(eol);
+        }
+
+        var size = 2.4d;
+        if (payload.FieldValues.TryGetValue("EntityLightSize", out var rawSize) && !string.IsNullOrWhiteSpace(rawSize))
+        {
+            if (!double.TryParse(rawSize.Trim(), NumberStyles.Float, CultureInfo.InvariantCulture, out size) || !double.IsFinite(size) || size <= 0d)
+            {
+                return Result.FromFailure($"Cannot save [Bricks.Entity.Light]: invalid Size '{rawSize}'.");
+            }
+        }
+
+        sb.Append("Size          = ").Append(FormatTomlFloat(size)).Append(eol);
+
+        var color = payload.FieldValues.TryGetValue("EntityLightColor", out var rawColor) && !string.IsNullOrWhiteSpace(rawColor)
+            ? rawColor.Trim()
+            : "#FFFFFF";
+        sb.Append("Color         = ").Append(FormatTomlString(color)).Append(eol);
+
+        var intensity = 1.0d;
+        if (payload.FieldValues.TryGetValue("EntityLightIntensity", out var rawIntensity) && !string.IsNullOrWhiteSpace(rawIntensity))
+        {
+            if (!double.TryParse(rawIntensity.Trim(), NumberStyles.Float, CultureInfo.InvariantCulture, out intensity) || !double.IsFinite(intensity) || intensity < 0d)
+            {
+                return Result.FromFailure($"Cannot save [Bricks.Entity.Light]: invalid Intensity '{rawIntensity}'.");
+            }
+        }
+
+        sb.Append("Intensity     = ").Append(FormatTomlFloat(intensity)).Append(eol);
+
+        if (payload.FieldValues.TryGetValue("EntityLightCastShadows", out var rawCastShadows) && !string.IsNullOrWhiteSpace(rawCastShadows))
+        {
+            var trimmedShadows = rawCastShadows.Trim();
+            if (trimmedShadows.Equals("true", StringComparison.OrdinalIgnoreCase))
+            {
+                sb.Append("CastShadows   = true").Append(eol);
+            }
+            else if (trimmedShadows.Equals("false", StringComparison.OrdinalIgnoreCase))
+            {
+                sb.Append("CastShadows   = false").Append(eol);
+            }
+        }
+
+        if (payload.FieldValues.TryGetValue("EntityLightOffset", out var rawOffset) && !string.IsNullOrWhiteSpace(rawOffset))
+        {
+            if (!TryParseVec3(rawOffset, out var ox, out var oy, out var oz))
+            {
+                return Result.FromFailure($"Cannot save [Bricks.Entity.Light]: invalid Offset '{rawOffset}'.");
+            }
+
+            if (ox != 0d || oy != 0d || oz != 0d)
+            {
+                sb.Append("Offset        = { X = ")
+                    .Append(FormatTomlFloat(ox))
+                    .Append(", Y = ")
+                    .Append(FormatTomlFloat(oy))
+                    .Append(", Z = ")
+                    .Append(FormatTomlFloat(oz))
+                    .Append(" }")
+                    .Append(eol);
+            }
+        }
+
+        if (payload.FieldValues.TryGetValue("EntityLightTintFromPaint", out var rawTint)
+            && rawTint.Trim().Equals("true", StringComparison.OrdinalIgnoreCase))
+        {
+            sb.Append("TintFromPaint = true").Append(eol);
+        }
+
+        if (existingLight >= 0)
+        {
+            var removeResult = RemoveTableSection(doc, existingLight);
+            if (!removeResult.Success)
+            {
+                return removeResult;
+            }
+        }
+
+        ownerTable = ResolveArrayTableByOrdinal(doc, "Bricks", brickOrdinal);
+        if (ownerTable < 0)
+        {
+            return Result.FromSuccess();
+        }
+
+        var lastOwned = FindLastOwnedTableIndex(doc, ownerTable, "Bricks");
+        return InsertBlockAtTableEnd(doc, lastOwned, sb.ToString());
+    }
+
+    private static Result ApplyBrickEntitySlotGroupsEdits(
+        ToolsDocuments.TomlDocument doc,
+        int brickOrdinal,
+        IReadOnlyList<(string GroupId, string Capacity)> slotGroups)
+    {
+        var ownerTable = ResolveArrayTableByOrdinal(doc, "Bricks", brickOrdinal);
+        if (ownerTable < 0)
+        {
+            return Result.FromSuccess();
+        }
+
+        var desired = new List<(string GroupId, int? Capacity)>(slotGroups.Count);
+        var seen = new HashSet<string>(StringComparer.Ordinal);
+        for (var i = 0; i < slotGroups.Count; i++)
+        {
+            var id = slotGroups[i].GroupId?.Trim() ?? string.Empty;
+            var rawCap = slotGroups[i].Capacity?.Trim() ?? string.Empty;
+            if (id.Length == 0)
+            {
+                return Result.FromFailure($"Cannot save [[Bricks.Entity.SlotGroups]]: row #{i + 1} has an empty slot group ID.");
+            }
+
+            if (!seen.Add(id))
+            {
+                return Result.FromFailure($"Cannot save [[Bricks.Entity.SlotGroups]]: duplicate slot group ID '{id}'.");
+            }
+
+            int? capacity = null;
+            if (rawCap.Length > 0)
+            {
+                if (!int.TryParse(rawCap, NumberStyles.Integer, CultureInfo.InvariantCulture, out var parsedCap) || parsedCap < 0)
+                {
+                    return Result.FromFailure($"Cannot save [[Bricks.Entity.SlotGroups]]: slot group '{id}' has invalid capacity '{rawCap}'.");
+                }
+
+                capacity = parsedCap;
+            }
+
+            desired.Add((id, capacity));
+        }
+
+        var lastOwned = FindLastOwnedTableIndex(doc, ownerTable, "Bricks");
+        for (var i = lastOwned; i > ownerTable; i--)
+        {
+            if (doc.Tables[i].HeaderPath.Equals("Bricks.Entity.SlotGroups", StringComparison.OrdinalIgnoreCase))
+            {
+                var removeResult = RemoveTableSection(doc, i);
+                if (!removeResult.Success)
+                {
+                    return removeResult;
+                }
+            }
+        }
+
+        if (desired.Count == 0)
+        {
+            return Result.FromSuccess();
+        }
+
+        var eol = doc.LineEnding;
+        var sb = new StringBuilder();
+        for (var i = 0; i < desired.Count; i++)
+        {
+            if (i > 0)
+            {
+                sb.Append(eol);
+            }
+
+            sb.Append("[[Bricks.Entity.SlotGroups]]").Append(eol);
+            sb.Append("ID = ").Append(FormatTomlString(desired[i].GroupId)).Append(eol);
+            if (desired[i].Capacity is int cap)
+            {
+                sb.Append("Capacity = ").Append(cap.ToString(CultureInfo.InvariantCulture)).Append(eol);
+            }
+        }
+
+        ownerTable = ResolveArrayTableByOrdinal(doc, "Bricks", brickOrdinal);
+        if (ownerTable < 0)
+        {
+            return Result.FromSuccess();
+        }
+
+        lastOwned = FindLastOwnedTableIndex(doc, ownerTable, "Bricks");
+        return InsertBlockAtTableEnd(doc, lastOwned, sb.ToString());
+    }
+
+    private static bool TryParseVec3(string raw, out double x, out double y, out double z)
+    {
+        x = y = z = 0d;
+        var parts = raw.Split(',', StringSplitOptions.TrimEntries);
+        if (parts.Length != 3)
+        {
+            return false;
+        }
+
+        return double.TryParse(parts[0], NumberStyles.Float, CultureInfo.InvariantCulture, out x) && double.IsFinite(x)
+            && double.TryParse(parts[1], NumberStyles.Float, CultureInfo.InvariantCulture, out y) && double.IsFinite(y)
+            && double.TryParse(parts[2], NumberStyles.Float, CultureInfo.InvariantCulture, out z) && double.IsFinite(z);
+    }
+
+    private static Result InsertBlockAtTableEnd(
+        ToolsDocuments.TomlDocument doc,
+        int lastOwnedIndex,
+        string block)
+    {
+        var insertOffset = Math.Clamp(doc.Tables[lastOwnedIndex].ContentSpan.End, 0, doc.Text.Length);
+        var eol = doc.LineEnding;
+        var before = doc.Text.AsSpan(0, insertOffset);
+        var after = doc.Text.AsSpan(insertOffset);
+
+        string leading;
+        if (before.Length == 0 || before.EndsWith("\n\n", StringComparison.Ordinal) || before.EndsWith("\r\n\r\n", StringComparison.Ordinal))
+        {
+            leading = string.Empty;
+        }
+        else if (before.EndsWith("\n", StringComparison.Ordinal))
+        {
+            leading = eol;
+        }
+        else
+        {
+            leading = eol + eol;
+        }
+
+        var trimmedBlock = block.TrimEnd('\r', '\n');
+        string trailing;
+        if (after.Length == 0)
+        {
+            trailing = doc.HasTrailingNewline ? eol : string.Empty;
+        }
+        else if (after.StartsWith("\r\n", StringComparison.Ordinal) || after.StartsWith("\n", StringComparison.Ordinal))
+        {
+            trailing = eol;
+        }
+        else
+        {
+            trailing = eol + eol;
+        }
+
+        var sb = new StringBuilder(doc.Text.Length + leading.Length + trimmedBlock.Length + trailing.Length);
+        sb.Append(before);
+        sb.Append(leading);
+        sb.Append(trimmedBlock);
+        sb.Append(trailing);
+        sb.Append(after);
+
+        var candidate = sb.ToString();
+        var parsed = ToolsDocuments.TomlDocument.Parse(candidate, doc.SourcePath);
+        if (parsed.HasSyntaxErrors)
+        {
+            var err = parsed.Diagnostics.Count > 0 ? parsed.Diagnostics[0].Message : "Inserting TOML table block produced invalid TOML.";
+            return Result.FromFailure(err);
+        }
+
+        doc.SetRawText(candidate);
         return Result.FromSuccess();
     }
 

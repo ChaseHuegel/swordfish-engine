@@ -214,4 +214,24 @@ public sealed class DocumentSavePayload
     ///     Whether buff regeneration rate rows were modified since load or last save.
     /// </summary>
     public bool BuffRegenRatesModified { get; init; }
+
+    /// <summary>
+    ///     Whether a brick document currently defines a <c>[Bricks.Entity.Light]</c> section.
+    /// </summary>
+    public bool BrickHasEntityLight { get; init; }
+
+    /// <summary>
+    ///     Whether a brick's entity light section presence or fields were modified since load or last save.
+    /// </summary>
+    public bool BrickEntityLightModified { get; init; }
+
+    /// <summary>
+    ///     Current entity slot group rows declared under <c>[[Bricks.Entity.SlotGroups]]</c>.
+    /// </summary>
+    public IReadOnlyList<(string GroupId, string Capacity)>? BrickEntitySlotGroups { get; init; }
+
+    /// <summary>
+    ///     Whether brick entity slot group rows were modified since load or last save.
+    /// </summary>
+    public bool BrickEntitySlotGroupsModified { get; init; }
 }
