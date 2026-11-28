@@ -529,8 +529,8 @@ public sealed class ItemModelEditorTests
             AvaloniaHeadlessPlatform.ForceRenderTimerTick(2);
             Dispatcher.UIThread.RunJobs();
 
-            Directory.CreateDirectory(HeadlessRenderHelper.COORDINATOR_PREVIEW_DIR);
-            string path = Path.Combine(HeadlessRenderHelper.COORDINATOR_PREVIEW_DIR, fileName);
+            Directory.CreateDirectory(HeadlessRenderHelper.PrimaryPreviewDirectory);
+            string path = Path.Combine(HeadlessRenderHelper.PrimaryPreviewDirectory, fileName);
             using var rtb = new RenderTargetBitmap(new PixelSize(640, 480), new Avalonia.Vector(96, 96));
             rtb.Render(host);
             rtb.Save(path);

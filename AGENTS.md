@@ -56,7 +56,8 @@ dotnet test WaywardBeyond.AssetStudio.Tests --no-build  # xunit Asset Studio hea
   game modules.
 - `WaywardBeyond.Voxels.Tests` is `net9.0`; it references only the voxel module
   and the brick module, so it runs without the engine.
-- CI publishes release artifacts from `.github/workflows/waywardbeyond.yml`.
+- CI publishes game release artifacts from `.github/workflows/waywardbeyond.yml`
+  and Asset Studio bundles from `.github/workflows/asset-studio.yml`.
 - No lint or typecheck scripts. `dotnet build` is the check.
 - Stale `launch.json` references `Swordfish/bin/Debug/Swordfish.exe`; the real
   launcher is `Swordfish.Launcher`.

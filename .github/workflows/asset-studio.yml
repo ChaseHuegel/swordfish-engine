@@ -1,0 +1,190 @@
+name: Asset Studio
+
+on:
+  push:
+    tags:
+      - '*.*.*'
+  workflow_dispatch:
+    inputs:
+      version:
+        description: SemVer version for the archives, for example 1.2.3 or v1.2.3
+        required: false
+        type: string
+
+permissions:
+  contents: read
+
+env:
+  DOTNET_NOLOGO: true
+  DOTNET_CLI_TELEMETRY_OPTOUT: true
+
+jobs:
+  version:
+    name: Resolve version
+    runs-on: ubuntu-latest
+    outputs:
+      value: ${{ steps.resolve.outputs.version }}
+    steps:
+      - name: Resolve version
+        id: resolve
+        shell: bash
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          DISPATCH_VERSION: ${{ inputs.version }}
+          REF_NAME: ${{ github.ref_name }}
+          RUN_NUMBER: ${{ github.run_number }}
+        run: |
+          raw="${REF_NAME}"
+          if [[ "${EVENT_NAME}" == "workflow_dispatch" ]]; then
+            raw="${DISPATCH_VERSION:-0.1.0-ci.${RUN_NUMBER}}"
+          fi
+
+          version="${raw#v}"
+          if [[ ! "${version}" =~ ^[0-9]+\.[0-9]+\.[0-9]+(-[0-9A-Za-z.-]+)?(\+[0-9A-Za-z.-]+)?$ ]]; then
+            echo "::error::Invalid version '${raw}'. Use SemVer, for example 1.2.3 or v1.2.3."
+            exit 1
+          fi
+
+          echo "version=${version}" >> "${GITHUB_OUTPUT}"
+          echo "Resolved version: ${version}"
+
+  test:
+    name: Test tools
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 9.0.x
+      - name: Install headless GL dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends \
+            xvfb \
+            xauth \
+            libgl1 \
+            libegl1 \
+            libgl1-mesa-dri \
+            libx11-6 \
+            libfontconfig1
+      - name: Restore tools
+        run: dotnet restore Tools.slnf
+      - name: Test tools
+        env:
+          LIBGL_ALWAYS_SOFTWARE: '1'
+        run: xvfb-run --auto-servernum dotnet test Tools.slnf --no-restore --verbosity normal
+
+  package-windows:
+    name: Package win-x64
+    needs: [version, test]
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 9.0.x
+      - name: Package
+        shell: pwsh
+        run: ./tools/package-asset-studio.ps1 -Rid win-x64 -Version "${{ needs.version.outputs.value }}"
+      - name: Verify archive
+        shell: pwsh
+        run: |
+          $archivePath = Join-Path $env:GITHUB_WORKSPACE "artifacts/asset-studio"
+          $archive = Get-ChildItem -Path $archivePath -Filter *.zip | Select-Object -First 1
+          if ($null -eq $archive -or $archive.Length -le 0) {
+              throw "Expected a non-empty win-x64 zip in $archivePath."
+          }
+
+          $smokeRoot = Join-Path $env:RUNNER_TEMP "asset-studio-smoke-win"
+          if (Test-Path $smokeRoot) {
+              Remove-Item -Recurse -Force $smokeRoot
+          }
+          Expand-Archive -Path $archive.FullName -DestinationPath $smokeRoot
+
+          $bundle = Get-ChildItem -Path $smokeRoot -Directory | Select-Object -First 1
+          if ($null -eq $bundle) {
+              throw "Archive $($archive.Name) has no bundle folder."
+          }
+
+          if (-not (Test-Path (Join-Path $bundle.FullName "README.txt"))) {
+              throw "Bundle $($bundle.Name) is missing README.txt."
+          }
+
+          foreach ($stripped in @("qps-ploc", "manifest.toml", "assets")) {
+              if (Test-Path (Join-Path $bundle.FullName $stripped)) {
+                  throw "Bundle $($bundle.Name) contains stripped path '$stripped'."
+              }
+          }
+
+          $cli = Join-Path $bundle.FullName "WaywardBeyond.AssetTools.Cli.exe"
+          $packDir = Join-Path $smokeRoot "pack"
+          & $cli new pack $packDir --json
+          if ($LASTEXITCODE -ne 0) {
+              throw "CLI new pack failed with exit $LASTEXITCODE."
+          }
+          & $cli validate $packDir --json
+          if ($LASTEXITCODE -ne 0) {
+              throw "CLI validate failed with exit $LASTEXITCODE."
+          }
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: wayward-beyond-asset-studio-${{ needs.version.outputs.value }}-win-x64
+          path: artifacts/asset-studio/*.zip
+          if-no-files-found: error
+
+  package-linux:
+    name: Package linux-x64
+    needs: [version, test]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 9.0.x
+      - name: Package
+        run: ./tools/package-asset-studio.sh --rid linux-x64 --version "${{ needs.version.outputs.value }}"
+      - name: Verify archive
+        run: |
+          archive_dir="artifacts/asset-studio"
+          archive="$(find "$archive_dir" -maxdepth 1 -name '*.tar.gz' -print -quit)"
+          if [[ -z "$archive" || ! -s "$archive" ]]; then
+            echo "::error::Expected a non-empty linux-x64 tar.gz in $archive_dir."
+            exit 1
+          fi
+
+          smoke_root="${RUNNER_TEMP}/asset-studio-smoke-linux"
+          rm -rf "$smoke_root"
+          mkdir -p "$smoke_root"
+          tar -xzf "$archive" -C "$smoke_root"
+
+          bundle="$(find "$smoke_root" -mindepth 1 -maxdepth 1 -type d -print -quit)"
+          if [[ -z "$bundle" ]]; then
+            echo "::error::Archive $archive has no bundle folder."
+            exit 1
+          fi
+
+          if [[ ! -f "$bundle/README.txt" ]]; then
+            echo "::error::Bundle has no README.txt."
+            exit 1
+          fi
+
+          for stripped in qps-ploc manifest.toml assets; do
+            if [[ -e "$bundle/$stripped" ]]; then
+              echo "::error::Bundle contains stripped path '$stripped'."
+              exit 1
+            fi
+          done
+
+          cli="$bundle/WaywardBeyond.AssetTools.Cli"
+          "$cli" new pack "$smoke_root/pack" --json
+          "$cli" validate "$smoke_root/pack" --json
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: wayward-beyond-asset-studio-${{ needs.version.outputs.value }}-linux-x64
+          path: artifacts/asset-studio/*.tar.gz
+          if-no-files-found: error

@@ -760,6 +760,10 @@ The tool does not author voxels. The in-game projector does that. See issue
 | Pixels | `SceneRenderer` under Xvfb with llvmpipe |
 | CLI | `roundtrip --check` over the workspace |
 
+`WB_STUDIO_PREVIEW_OUT_DIRS` sets the folders that receive visual capture
+PNGs. The default is a temporary folder. `WB_GL_PREVIEW_OUT_DIRS` sets the
+folders that receive GL preview PNGs.
+
 ## Packaging
 
 - Artifacts are self-contained folders. Windows uses `.zip`. Linux uses `.tar.gz`.
@@ -768,6 +772,14 @@ The tool does not author voxels. The in-game projector does that. See issue
 - There is no single-file build, no installer, and no auto-update.
 - Linux needs `libgl1`, `libx11-6`, `libfontconfig1`, and `libgtk-3-0`.
 - See About and diagnostics for version and log details.
+- `.github/workflows/asset-studio.yml` runs `Tools.slnf` first, then packages
+  and uploads both bundles on native Windows and Linux runners.
+- Tag pushes and `workflow_dispatch` runs set the version. The workflow strips
+  a leading `v`. A dispatch without a version uses
+  `0.1.0-ci.<run_number>`.
+- The workflow rejects an archive that lacks `README.txt` or contains
+  `qps-ploc`, `manifest.toml`, or `assets/`. It also runs `new pack` and
+  `validate` from the extracted CLI on each runner.
 
 ## Accepted limitations
 
@@ -838,6 +850,7 @@ The tool does not author voxels. The in-game projector does that. See issue
 - GL preview controller, preview databases, renderer, gizmos, shaders, textures, and showcase builders: `WaywardBeyond.AssetStudio/Services/StudioGlPreviewController.cs:25`, `WaywardBeyond.AssetStudio/Services/StudioPreviewBrickDatabase.cs:12`, `WaywardBeyond.AssetStudio/Services/StudioPreviewPaintDatabase.cs:11`, `WaywardBeyond.AssetStudio/Rendering/SceneRenderer.cs:13`, `WaywardBeyond.AssetStudio/Rendering/PreviewCamera.cs:7`, `WaywardBeyond.AssetStudio/Rendering/ModelTransformMath.cs:8`, `WaywardBeyond.AssetStudio/Rendering/TransformGizmoController.cs:8`, `WaywardBeyond.AssetStudio/Rendering/TransformGizmoMeshBuilder.cs:10`, `WaywardBeyond.AssetStudio/Rendering/TransformGizmoMode.cs:4`, `WaywardBeyond.AssetStudio/Rendering/TransformGizmoSpace.cs:4`, `WaywardBeyond.AssetStudio/Rendering/TransformGizmoAxis.cs:4`, `WaywardBeyond.AssetStudio/Rendering/PreviewTextureMode.cs:4`, `WaywardBeyond.AssetStudio/Rendering/ModelEditorRenderState.cs:8`, `WaywardBeyond.AssetStudio/Rendering/GlViewport.cs:21`, `WaywardBeyond.AssetStudio/Rendering/ModelEditorViewport.cs:17`, `WaywardBeyond.AssetStudio/Rendering/PreviewShaderSource.cs:4`, `WaywardBeyond.AssetStudio/Rendering/PbrAlbedoArrayLoader.cs:12`, `WaywardBeyond.AssetStudio/Rendering/StandaloneTextureLoader.cs:10`, `WaywardBeyond.AssetStudio/Rendering/PreviewGeometryFactory.cs:10`, `WaywardBeyond.AssetStudio/Rendering/ConnectedBrickShowcaseBuilder.cs:10`
 - Game runtime view model and standing height parity sources: `WaywardBeyond.Client/Systems/PlayerViewModelSystem.cs:21`, `WaywardBeyond.Client/UI/Settings/SettingsDefaults.cs:14`, `WaywardBeyond.Gameplay/CharacterDefaults.cs:56`
 - Packaging scripts: `tools/package-asset-studio.sh:1`, `tools/package-asset-studio.ps1:1`
+- Asset Studio CI packaging: `.github/workflows/asset-studio.yml:1`
 
 ## Tests that pin this
 

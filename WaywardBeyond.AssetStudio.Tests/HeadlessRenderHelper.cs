@@ -13,26 +13,23 @@ internal static class HeadlessRenderHelper
 {
     private const int WIDTH = 1280;
     private const int HEIGHT = 800;
+    private const string PREVIEW_OUT_DIRS_ENV = "WB_STUDIO_PREVIEW_OUT_DIRS";
 
     /// <summary>
-    ///     Primary shared previews output directory read by the coordinator and UI reviewer.
+    ///     Gets the first preview output folder.
     /// </summary>
-    public const string COORDINATOR_PREVIEW_DIR =
-        "/home/agent/.t3/userdata/providers/antigravity/ac0a3dfd6dddb20962cecff6ee5fe65e19d3923be20e52c5ab52ff877f7e4c32/antigravity-acp/brain/49f337cf-b0d3-499a-86f0-6d0b6fba941a/previews";
+    public static string PrimaryPreviewDirectory => ResolvePreviewOutputDirs()[0];
 
     /// <summary>
-    ///     Local conversation artifact directory for swarm overview screenshot reporting.
+    ///     Lays out and renders the window to PNG in each preview output folder, asserting non-blank pixels.
     /// </summary>
-    public const string LOCAL_PREVIEW_DIR =
-        "/home/agent/.t3/userdata/providers/antigravity/ac0a3dfd6dddb20962cecff6ee5fe65e19d3923be20e52c5ab52ff877f7e4c32/antigravity-acp/brain/fa495e8b-ca61-411e-8a9d-e069c34ca08a/previews";
-
-    /// <summary>
-    ///     Lays out and renders the window to PNG in both output folders, asserting non-blank pixels.
-    /// </summary>
+    /// <remarks>
+    ///     Set <c>WB_STUDIO_PREVIEW_OUT_DIRS</c> to a <see cref="Path.PathSeparator"/>-separated list to
+    ///     write additional copies. The default is a temporary folder.
+    /// </remarks>
     public static string CaptureWindowPng(MainWindow window, string fileName)
     {
-        Directory.CreateDirectory(COORDINATOR_PREVIEW_DIR);
-        Directory.CreateDirectory(LOCAL_PREVIEW_DIR);
+        string[] outputDirs = ResolvePreviewOutputDirs();
 
         window.Width = WIDTH;
         window.Height = HEIGHT;
@@ -45,20 +42,40 @@ internal static class HeadlessRenderHelper
         AvaloniaHeadlessPlatform.ForceRenderTimerTick(2);
         Dispatcher.UIThread.RunJobs();
 
-        var targetPath = Path.Combine(COORDINATOR_PREVIEW_DIR, fileName);
-        var localCopyPath = Path.Combine(LOCAL_PREVIEW_DIR, fileName);
-
         using var renderBitmap = new RenderTargetBitmap(new PixelSize(WIDTH, HEIGHT), new Vector(96, 96));
         renderBitmap.Render(window);
-        renderBitmap.Save(targetPath);
 
-        var fileInfo = new FileInfo(targetPath);
-        if (!fileInfo.Exists || fileInfo.Length < 4096)
+        string? targetPath = null;
+        for (var i = 0; i < outputDirs.Length; i++)
         {
-            throw new InvalidOperationException($"Captured PNG '{fileName}' appears blank or truncated ({fileInfo.Length} bytes).");
+            string outputDir = outputDirs[i];
+            Directory.CreateDirectory(outputDir);
+            string path = Path.Combine(outputDir, fileName);
+            renderBitmap.Save(path);
+
+            var fileInfo = new FileInfo(path);
+            if (!fileInfo.Exists || fileInfo.Length < 4096)
+            {
+                throw new InvalidOperationException($"Captured PNG '{fileName}' appears blank or truncated ({fileInfo.Length} bytes).");
+            }
+
+            targetPath ??= path;
         }
 
-        File.Copy(targetPath, localCopyPath, overwrite: true);
-        return targetPath;
+        return targetPath!;
+    }
+
+    private static string[] ResolvePreviewOutputDirs()
+    {
+        string? configured = Environment.GetEnvironmentVariable(PREVIEW_OUT_DIRS_ENV);
+        if (string.IsNullOrWhiteSpace(configured))
+        {
+            return [Path.Combine(Path.GetTempPath(), "wb-asset-studio-previews")];
+        }
+
+        string[] outputDirs = configured.Split(Path.PathSeparator, StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+        return outputDirs.Length > 0
+            ? outputDirs
+            : [Path.Combine(Path.GetTempPath(), "wb-asset-studio-previews")];
     }
 }
