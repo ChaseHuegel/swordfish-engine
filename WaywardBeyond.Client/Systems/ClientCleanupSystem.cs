@@ -22,17 +22,20 @@ internal sealed class ClientCleanupSystem : IEntitySystem
     private readonly ILogger<ClientCleanupSystem> _logger;
     private readonly IParticleService? _particleService;
     private readonly RegionToolState? _regionToolState;
+    private readonly ClientStationState? _stationState;
     private readonly ConcurrentQueue<byte> _requests = new();
 
     public ClientCleanupSystem(
         in ILogger<ClientCleanupSystem> logger,
         IParticleService? particleService = null,
-        RegionToolState? regionToolState = null
+        RegionToolState? regionToolState = null,
+        ClientStationState? stationState = null
     )
     {
         _logger = logger;
         _particleService = particleService;
         _regionToolState = regionToolState;
+        _stationState = stationState;
     }
 
     /// <summary>Queues a full world teardown to run on the ECS thread.</summary>
@@ -50,6 +53,7 @@ internal sealed class ClientCleanupSystem : IEntitySystem
 
         _particleService?.Clear();
         _regionToolState?.ResetTransientOnDisconnect();
+        _stationState?.Reset();
 
         FreeGameAction game = new();
         store.Query<IdentifierComponent, FreeGameAction>(0f, ref game);

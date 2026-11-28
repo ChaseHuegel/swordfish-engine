@@ -20,6 +20,7 @@ internal static class GameShortcuts
 
     public const string PRIMARY_ACTION = "Interaction/Primary action";
     public const string SECONDARY_ACTION = "Interaction/Secondary action";
+    public const string ACTIVATE = "Interaction/Activate";
     public const string PICK_BRICK = "Interaction/Pick brick";
     public const string SNAP_PLACEMENT = "Interaction/Snap Placement";
     public const string CHANGE_SHAPE = "Interaction/Change shape";
@@ -114,6 +115,20 @@ internal static class GameShortcuts
             Category = "Interaction",
             Name = "Secondary action",
             MouseButton = MouseButton.Right,
+            IgnoreUnboundModifiers = true,
+            IsEnabled = Shortcut.DefaultEnabled,
+        };
+    }
+
+    /// <summary>Creates the activate interaction shortcut definition.</summary>
+    public static Shortcut CreateActivate()
+    {
+        return new Shortcut
+        {
+            Category = "Interaction",
+            Name = "Activate",
+            Modifiers = ShortcutModifiers.None,
+            Key = Key.F,
             IgnoreUnboundModifiers = true,
             IsEnabled = Shortcut.DefaultEnabled,
         };

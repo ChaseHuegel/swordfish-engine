@@ -265,6 +265,7 @@
 "ui.settings.keybind.toggleInertialDampeners" = "Toggle inertial dampeners"
 "ui.settings.keybind.primaryAction" = "Primary action"
 "ui.settings.keybind.secondaryAction" = "Secondary action"
+"ui.settings.keybind.activate" = "Activate"
 "ui.settings.keybind.pickBrick" = "Pick brick"
 "ui.settings.keybind.snapPlacement" = "Snap placement"
 "ui.settings.keybind.changeShape" = "Change shape"

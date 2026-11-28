@@ -146,6 +146,24 @@ internal sealed class PlayerData(
         store.QueryRef<PlayerComponent, PendingInventoryComponent, StageTransferAction>(0f, ref stage);
     }
 
+    /// <summary>
+    /// Stages a server-authoritative station command for upstream replication using
+    /// <see cref="PendingStationActionComponent"/> sequence numbering with zero client prediction.
+    /// </summary>
+    public void StageStationAction(DataStore store, in StationActionOp op)
+    {
+        var stage = new StageStationActionCommand(in op);
+        store.Query<PlayerComponent, StageStationActionCommand>(0f, ref stage);
+    }
+
+    /// <summary>Reads the local player's server-replicated <see cref="ActiveStationComponent"/>, or <see cref="ActiveStationComponent.None"/>.</summary>
+    public ActiveStationComponent GetActiveStation(DataStore store)
+    {
+        var query = new ActiveStationQuery();
+        store.Query<PlayerComponent, ActiveStationQuery>(0f, ref query);
+        return query.Station;
+    }
+
     private struct PredictTransferAction(in TransferOp transfer, in InventoryValidationContext validationContext)
         : IForEachRef<PlayerComponent, InventoryComponent>
     {
@@ -179,6 +197,33 @@ internal sealed class PlayerData(
         {
             ref PendingInventoryComponent pendingValue = ref pending.Write;
             pendingValue.Outbound.Stage(++pendingValue.NextSequence, in _transfer);
+        }
+    }
+
+    private struct StageStationActionCommand(in StationActionOp op) : IForEach<PlayerComponent>
+    {
+        private readonly StationActionOp _op = op;
+
+        public void Execute(float delta, DataStore store, int entity, in PlayerComponent player)
+        {
+            PendingStationActionComponent pending = store.TryGet(entity, out PendingStationActionComponent existing)
+                && existing.Outbound != null
+                ? existing
+                : new PendingStationActionComponent();
+            pending.Outbound.Stage(++pending.NextSequence, in _op);
+            store.AddOrUpdate(entity, pending);
+        }
+    }
+
+    private struct ActiveStationQuery : IForEach<PlayerComponent>
+    {
+        public ActiveStationComponent Station;
+
+        public void Execute(float delta, DataStore store, int entity, in PlayerComponent player)
+        {
+            Station = store.TryGet(entity, out ActiveStationComponent active)
+                ? active
+                : ActiveStationComponent.None;
         }
     }
 }

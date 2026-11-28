@@ -12,6 +12,7 @@ public static class InteractionInputExtensions
         {
             InteractionKind.PrimaryPressed or InteractionKind.PrimaryReleased => InteractionInput.Primary,
             InteractionKind.SecondaryPressed or InteractionKind.SecondaryReleased => InteractionInput.Secondary,
+            InteractionKind.Activate => InteractionInput.Activate,
             _ => InteractionInput.None,
         };
     }
@@ -29,6 +30,7 @@ public static class InteractionInputExtensions
         {
             InteractionInput.Primary => InteractionKind.PrimaryPressed,
             InteractionInput.Secondary => InteractionKind.SecondaryPressed,
+            InteractionInput.Activate => InteractionKind.Activate,
             _ => InteractionKind.None,
         };
     }

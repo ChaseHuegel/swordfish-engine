@@ -42,7 +42,8 @@ public sealed class ServerJoinSystem(
     ServerPeers peers,
     IUserPermissionService permissions,
     ISlotGroupSchemaDatabase? schemas = null,
-    IItemDatabase? itemDatabase = null
+    IItemDatabase? itemDatabase = null,
+    ServerStationService? stations = null
 ) : IServerWorldSystem
 {
     private uint _nextSessionId;
@@ -107,11 +108,16 @@ public sealed class ServerJoinSystem(
     private void HandleDisconnect(Uuid clientId, DataStore store)
     {
         permissions.Unbind(clientId);
-        replication.CancelStream(clientId);
 
         if (sessions.TryGetEntity(clientId, out int entity))
         {
+            stations?.OnClientDisconnected(store, clientId, entity);
+            replication.CancelStream(clientId);
             ReleasePlayerMirror(entity, store);
+        }
+        else
+        {
+            replication.CancelStream(clientId);
         }
 
         if (sessions.EndSession(clientId))
@@ -131,12 +137,16 @@ public sealed class ServerJoinSystem(
     /// </summary>
     private void HandleLeave(Uuid clientId, DataStore store)
     {
-        replication.CancelStream(clientId);
-
         if (sessions.TryGetEntity(clientId, out int entity))
         {
+            stations?.OnClientDisconnected(store, clientId, entity);
+            replication.CancelStream(clientId);
             ReleasePlayerMirror(entity, store);
             logger.LogInformation("Freed player mirror {entity} for client {client}.", entity, clientId);
+        }
+        else
+        {
+            replication.CancelStream(clientId);
         }
 
         if (sessions.EndSession(clientId))
@@ -204,6 +214,7 @@ public sealed class ServerJoinSystem(
 
         if (sessions.TryGetEntity(clientId, out int existing))
         {
+            stations?.OnClientDisconnected(store, clientId, existing);
             replication.CancelStream(clientId);
             ReleasePlayerMirror(existing, store);
             sessions.EndSession(clientId);

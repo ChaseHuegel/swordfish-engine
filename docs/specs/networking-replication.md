@@ -10,8 +10,10 @@ One subject: dirty-driven replication between server and client.
   inbound `ClientOwned` snapshot is bound to its sender's session entity: a wire
   uuid naming any other entity is ignored, never allocated, staged, or applied.
   Accepted `InputComponent`s advance `LastAckedInput` and stage the command.
-  Input, interaction events, and inventory ops are staged in the session
-  entity's `StageRing<T>` buffers, not applied in place.
+  Input, interaction events, inventory ops, and station actions are staged in
+  the session entity's `StageRing<T>` buffers, not applied in place. An
+  out-of-bounds `StationActionEvent` payload is cleared and dropped
+  (`WaywardBeyond.Server/Systems/NetworkReplicationSystem.cs:1195-1212`).
   A malformed snapshot from one peer is logged and skipped.
 - **Publish stage** queries entities carrying `NetworkComponent`, serializes
   every dirty `ServerOwned` component into `ComponentSnapshot`s, emits
@@ -35,8 +37,10 @@ One subject: dirty-driven replication between server and client.
   viewer or calling `DetachAllViewers` queues a targeted `RemovedEntities` entry
   only for viewers that previously received the entity. `CancelStream` tears down
   all viewer subscriptions when a client leaves, disconnects, or rejoins.
-  `ServerBrickEntitySystem` (`WaywardBeyond.Server/Systems/ServerBrickEntitySystem.cs:9`)
-  detaches viewers that move out of reach before `NetworkPublishSystem` runs.
+  `ServerBrickEntitySystem` (`WaywardBeyond.Server/Systems/ServerBrickEntitySystem.cs:10`)
+  reconciles open `ActiveStationComponent` bindings through
+  `ServerStationService.ReconcileActiveStations` and detaches viewers that move
+  out of reach before `NetworkPublishSystem` runs.
 - **Despawns** are recorded via `RequestDespawn(entityUuid,
   excludedRecipientEntity)` before the entity is freed (`DataStore.Free` clears
   the uuid) and broadcast in `RemovedEntities`, omitting any excluded owner.
@@ -137,7 +141,9 @@ cadence through `SendSnapshot`.
 
 - Discrete interaction taps are latched into the outbound `StageRing`.
   Inventory moves ride the same drain as `InventoryEvent` ops (see
-  [inventory](networking-inventory.md)).
+  [inventory](networking-inventory.md)), and server-authoritative station commands
+  ride the same drain as `StationActionEvent` ops from
+  `PendingStationActionComponent` with zero local prediction.
 - Staged edges and ops clear only after the sending peer accepts the snapshot.
   A rejected send is a peer failure: the system requests the normal disconnect
   teardown and leaves the buffers staged.

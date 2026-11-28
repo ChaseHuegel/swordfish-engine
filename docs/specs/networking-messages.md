@@ -131,7 +131,7 @@ message InteractionEvent
     ulong Entity;            // player mirror address (dedupe/routing)
     uint  SequenceNumber;
     uint  ServerTickAtSample;
-    byte  Kind;              // PrimaryPressed / PrimaryReleased / SecondaryPressed / SecondaryReleased
+    byte  Kind;              // PrimaryPressed / PrimaryReleased / SecondaryPressed / SecondaryReleased / Activate
     BrickInteraction? Brick; // brick hint payload
     PaintInteraction? Paint; // face-paint hint payload
 }
@@ -169,6 +169,57 @@ message InventoryEvent
     TransferOp? Transfer      = 2;    // keyed intra-inventory or cross-container transfer
 }
 ```
+
+## Station binding and actions
+
+`WaywardBeyond.Data/Nsd/components.nsd:170-207` defines the `OwnerOnly` station
+binding component and the sequence-numbered client command stream:
+
+```nsd
+message ActiveStationComponent
+{
+    ulong  StationEntity = 0;
+    ulong  VoxelEntity   = 1;
+    int    VoxelX        = 2;
+    int    VoxelY        = 3;
+    int    VoxelZ        = 4;
+    string StationTag    = 5;
+    byte   UiKind        = 6;    // StationUiKind: 0 = None, 1 = ContextualTab, 2 = Terminal
+}
+
+enum StationActionKind
+{
+    None             = 0;
+    CloseStation     = 1;
+    StartCraft       = 2;
+    CancelCraft      = 3;
+    TogglePower      = 4;
+    RemoteToggleNode = 5;
+    Respawn          = 6;
+    Custom           = 7;
+}
+
+message StationActionOp
+{
+    ulong             TargetEntity = 0;
+    StationActionKind Action       = 1;
+    string?           ActionId     = 2;
+    string?           Argument     = 3;
+    uint              Count        = 4;
+}
+
+message StationActionEvent
+{
+    ulong            Entity         = 0;
+    uint             SequenceNumber = 1;
+    StationActionOp? Action         = 2;
+}
+```
+
+`StationActionOp.IsWithinWireBounds` (`WaywardBeyond.Data/Components/StationActionOp.cs:15`)
+rejects undefined or `None` action kinds, `Custom` actions with blank `ActionId`,
+`ActionId` longer than `128` characters, and `Argument` longer than `256`
+characters. See [interaction-pipeline](interaction-pipeline.md).
 
 ## Interaction context components
 

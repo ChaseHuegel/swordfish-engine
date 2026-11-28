@@ -9,6 +9,7 @@ using WaywardBeyond.Data.Components;
 using WaywardBeyond.Gameplay;
 using WaywardBeyond.Gameplay.Interactions;
 using WaywardBeyond.Gameplay.Networking;
+using WaywardBeyond.Gameplay.Stations;
 using WaywardBeyond.Server.Components;
 
 namespace WaywardBeyond.Server.Systems;
@@ -26,7 +27,8 @@ public sealed class ServerInteractionSystem(
     IInteractionHandlerRegistry handlerRegistry,
     Func<DataStore, IVoxelInteractionWorld> worldFactory,
     SimulationStep simulationStep,
-    ServerBrickEntityService? brickEntities = null
+    ServerBrickEntityService? brickEntities = null,
+    IStationSession? stations = null
 ) : IServerWorldSystem
 {
     private readonly Dictionary<Uuid, TimedSession> _timedSessions = [];
@@ -131,7 +133,8 @@ public sealed class ServerInteractionSystem(
             mode,
             heldItemId,
             simTick,
-            simulationStep.FixedDelta);
+            simulationStep.FixedDelta,
+            stations);
 
         InteractionRunResult preCheck = handlerRegistry.Run(ref context, InteractionStage.Select, InteractionStage.Validate);
         if (preCheck.Decision is InteractionDecision.Consume or InteractionDecision.Cancel)
@@ -256,7 +259,8 @@ public sealed class ServerInteractionSystem(
             mode,
             heldItemId,
             simTick,
-            simulationStep.FixedDelta);
+            simulationStep.FixedDelta,
+            stations);
 
         InteractionRunResult validation = handlerRegistry.Run(ref context, InteractionStage.Select, InteractionStage.Validate);
         if (validation.Decision is InteractionDecision.Consume or InteractionDecision.Cancel ||
@@ -424,7 +428,8 @@ public sealed class ServerInteractionSystem(
         GameMode mode,
         string? heldItemId,
         long simTick,
-        float fixedDelta
+        float fixedDelta,
+        IStationSession? stations
     ) {
         //  The hint and the mirror transform are the only client-authored inputs; the pipeline resolves
         //  the rest against the authority store.
@@ -438,7 +443,7 @@ public sealed class ServerInteractionSystem(
             paintHint
         );
 
-        return new InteractionContext(store, player, clientId, sequence, world, in request, heldItemId, simTick, fixedDelta);
+        return new InteractionContext(store, player, clientId, sequence, world, in request, heldItemId, simTick, fixedDelta, stations);
     }
 
     private static GameMode GetGameMode(DataStore store, int player)

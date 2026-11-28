@@ -56,6 +56,17 @@ public static class NetworkingComposition
             new NsdComponentCodec<MachineStateComponent>(),
             ReplicationAudience.ViewersOnly
         ));
+        Require(registry.Register<ActiveStationComponent>(
+            Uuid.FromValue(22),
+            NetworkDirection.ServerOwned,
+            new NsdComponentCodec<ActiveStationComponent>(),
+            ReplicationAudience.OwnerOnly
+        ));
+        Require(registry.Register<StationActionEvent>(
+            Uuid.FromValue(23),
+            NetworkDirection.ClientOwned,
+            new NsdComponentCodec<StationActionEvent>()
+        ));
 
         registry.Freeze();
     }

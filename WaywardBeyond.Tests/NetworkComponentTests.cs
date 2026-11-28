@@ -23,11 +23,13 @@ public class NetworkComponentTests
         NetworkComponent net = NetworkComponent.Create();
         net.LastConsumedInteractionSequence = 42;
         net.LastConsumedInventorySequence = 7;
+        net.LastConsumedStationActionSequence = 13;
 
         NetworkComponent fresh = NetworkComponent.Create();
 
         Assert.Equal(0u, fresh.LastConsumedInteractionSequence);
         Assert.Equal(0u, fresh.LastConsumedInventorySequence);
+        Assert.Equal(0u, fresh.LastConsumedStationActionSequence);
     }
 
     [Fact]
@@ -39,6 +41,7 @@ public class NetworkComponentTests
         Assert.NotSame(first.StagedInputs, second.StagedInputs);
         Assert.NotSame(first.StagedInteractions, second.StagedInteractions);
         Assert.NotSame(first.StagedInventoryOps, second.StagedInventoryOps);
+        Assert.NotSame(first.StagedStationActions, second.StagedStationActions);
     }
 
     [Fact]

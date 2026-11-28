@@ -31,6 +31,7 @@ internal sealed class PlayerCharacterEntityBuilder(
 
         player.Add<PlayerComponent>();
         player.AddOrUpdate(new PendingInventoryComponent());
+        player.AddOrUpdate(new PendingStationActionComponent());
         player.AddOrUpdate(new EquipmentComponent(inventory.ClampHotbarSlot(character.ActiveInventorySlot)));
         player.AddOrUpdate(new IdentifierComponent(character.Name, "game"));
         player.AddOrUpdate(new TransformComponent(

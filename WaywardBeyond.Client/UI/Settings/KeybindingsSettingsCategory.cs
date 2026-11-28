@@ -182,8 +182,21 @@ internal static class KeybindingsSettingsCategory
             return true;
         }
 
-        return (left == KeybindingScope.World && IsWorldSubScope(right))
-            || (right == KeybindingScope.World && IsWorldSubScope(left));
+        if (left == KeybindingScope.World || right == KeybindingScope.World)
+        {
+            KeybindingScope other = left == KeybindingScope.World ? right : left;
+            return other == KeybindingScope.WorldInteraction || IsWorldSubScope(other);
+        }
+
+        if (left == KeybindingScope.WorldInteraction || right == KeybindingScope.WorldInteraction)
+        {
+            KeybindingScope other = left == KeybindingScope.WorldInteraction ? right : left;
+            return other is KeybindingScope.BrickPlacement
+                or KeybindingScope.PaintSprayer
+                or KeybindingScope.Drill;
+        }
+
+        return false;
     }
 
     private static bool IsWorldSubScope(KeybindingScope scope)
@@ -196,6 +209,11 @@ internal static class KeybindingsSettingsCategory
 
     private static KeybindingScope ResolveScope(in ShortcutInfo info)
     {
+        if (string.Equals(info.Id, GameShortcuts.ACTIVATE, StringComparison.Ordinal))
+        {
+            return KeybindingScope.WorldInteraction;
+        }
+
         if (string.Equals(info.Id, GameShortcuts.CHANGE_SHAPE, StringComparison.Ordinal)
             || string.Equals(info.Id, GameShortcuts.CHANGE_ORIENTATION, StringComparison.Ordinal))
         {
@@ -377,13 +395,14 @@ internal static class KeybindingsSettingsCategory
 
             GameShortcuts.PRIMARY_ACTION => 100,
             GameShortcuts.SECONDARY_ACTION => 101,
-            GameShortcuts.PICK_BRICK => 102,
-            GameShortcuts.SNAP_PLACEMENT => 103,
-            GameShortcuts.CHANGE_SHAPE => 104,
-            GameShortcuts.CHANGE_ORIENTATION => 105,
-            GameShortcuts.SELECT_PAINT_COLOR => 106,
-            GameShortcuts.SELECT_PAINT_TEXTURE => 107,
-            GameShortcuts.BLUEPRINT_TOOL_ACTIONS => 108,
+            GameShortcuts.ACTIVATE => 102,
+            GameShortcuts.PICK_BRICK => 103,
+            GameShortcuts.SNAP_PLACEMENT => 104,
+            GameShortcuts.CHANGE_SHAPE => 105,
+            GameShortcuts.CHANGE_ORIENTATION => 106,
+            GameShortcuts.SELECT_PAINT_COLOR => 107,
+            GameShortcuts.SELECT_PAINT_TEXTURE => 108,
+            GameShortcuts.BLUEPRINT_TOOL_ACTIONS => 109,
 
             GameShortcuts.INVENTORY => 200,
             GameShortcuts.INVENTORY_MOVE_STACK => 201,
@@ -446,6 +465,7 @@ internal static class KeybindingsSettingsCategory
 
             GameShortcuts.PRIMARY_ACTION => "ui.settings.keybind.primaryAction",
             GameShortcuts.SECONDARY_ACTION => "ui.settings.keybind.secondaryAction",
+            GameShortcuts.ACTIVATE => "ui.settings.keybind.activate",
             GameShortcuts.PICK_BRICK => "ui.settings.keybind.pickBrick",
             GameShortcuts.SNAP_PLACEMENT => "ui.settings.keybind.snapPlacement",
             GameShortcuts.CHANGE_SHAPE => "ui.settings.keybind.changeShape",

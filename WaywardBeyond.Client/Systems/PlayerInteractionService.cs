@@ -110,6 +110,7 @@ internal sealed class PlayerInteractionService : IEntryPoint, IEntitySystem, IDe
 
     private DebugInfo _debugInfo;
     private volatile string? _heldItemID;
+    private volatile bool _holdingBlueprintTool;
 
     public PlayerInteractionService(
         in InteractionState interactionState,
@@ -202,6 +203,12 @@ internal sealed class PlayerInteractionService : IEntryPoint, IEntitySystem, IDe
         );
         GameShortcuts.RegisterOrAddHandler(
             shortcutService,
+            GameShortcuts.CreateActivate(),
+            IsActivateActionEnabled,
+            () => _pendingInputs.Enqueue(InteractionInput.Activate)
+        );
+        GameShortcuts.RegisterOrAddHandler(
+            shortcutService,
             GameShortcuts.CreatePickBrick(),
             IsGameplayActionEnabled,
             () => Interlocked.Exchange(ref _pickRequested, 1)
@@ -224,6 +231,11 @@ internal sealed class PlayerInteractionService : IEntryPoint, IEntitySystem, IDe
     private bool IsGameplayActionEnabled()
     {
         return WaywardBeyond.GameState == GameState.Playing && !_interactionState.IsInteractionBlocked();
+    }
+
+    private bool IsActivateActionEnabled()
+    {
+        return IsGameplayActionEnabled() && !_holdingBlueprintTool;
     }
     
     private void OnSnapPlacementPressed()
@@ -254,6 +266,7 @@ internal sealed class PlayerInteractionService : IEntryPoint, IEntitySystem, IDe
     public void Tick(float delta, DataStore store)
     {
         _store = store;
+        UpdateHeldBlueprintState(store);
         bool needsTimedEvaluation = _timedInteractionController != null &&
             (_timedInteractionController.HasActiveSession ||
              !_pendingInputs.IsEmpty ||
@@ -390,6 +403,16 @@ internal sealed class PlayerInteractionService : IEntryPoint, IEntitySystem, IDe
             return;
         }
 
+        if (kind == InteractionKind.Activate)
+        {
+            if (source == InteractionSource.Press)
+            {
+                AttemptActivateInteraction(store, playerEntity);
+            }
+
+            return;
+        }
+
         if (InteractionIntent.PaintMode(heldItem) is { } paintMode)
         {
             AttemptPaintInteraction(store, playerEntity, kind, mode, paintMode, source);
@@ -471,6 +494,51 @@ internal sealed class PlayerInteractionService : IEntryPoint, IEntitySystem, IDe
         }
 
         ApplyVoxelPrediction(store, playerEntity, in resolution, in hint);
+    }
+
+    private void AttemptActivateInteraction(DataStore store, int playerEntity)
+    {
+        bool hit = TryGetBrickFromScreenSpace(
+            offset: false,
+            reachAround: false,
+            out Entity entity,
+            out Voxel targetVoxel,
+            out Int3 coordinate,
+            out _,
+            out _,
+            out _,
+            out _
+        );
+        if (!hit || targetVoxel.ID == 0)
+        {
+            return;
+        }
+
+        var hint = new BrickInteraction
+        {
+            TargetEntity = store.GetUuid(entity.Ptr).ToValue(),
+            TargetX = coordinate.X,
+            TargetY = coordinate.Y,
+            TargetZ = coordinate.Z,
+            HintShape = 0,
+            HintOrientation = 0,
+        };
+
+        //  Zero client prediction: the server validates reach, access, and station or door effects.
+        StageInteractionEvent(store, playerEntity, InteractionKind.Activate, hint, paintHint: null);
+    }
+
+    private void UpdateHeldBlueprintState(DataStore store)
+    {
+        int playerEntity = FindPlayerEntity(store);
+        if (playerEntity < 0)
+        {
+            _holdingBlueprintTool = false;
+            return;
+        }
+
+        Item? heldItem = GetHeldItem(GetHeldItemID(store, playerEntity));
+        _holdingBlueprintTool = InteractionIntent.IsBlueprintItem(heldItem);
     }
 
     private Brick? ResolveHeldPlaceable(string? heldItemID)

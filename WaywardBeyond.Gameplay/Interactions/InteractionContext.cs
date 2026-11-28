@@ -3,6 +3,7 @@ using Krill;
 using WaywardBeyond.Bricks;
 using WaywardBeyond.Data;
 using WaywardBeyond.Data.Components;
+using WaywardBeyond.Gameplay.Stations;
 
 namespace WaywardBeyond.Gameplay.Interactions;
 
@@ -23,7 +24,8 @@ public struct InteractionContext
         in InteractionRequest request,
         string? heldItemID,
         long simTick = 0L,
-        float fixedDelta = 0f
+        float fixedDelta = 0f,
+        IStationSession? stations = null
     ) {
         Store = store;
         Player = player;
@@ -39,6 +41,7 @@ public struct InteractionContext
         HeldItemID = heldItemID;
         SimTick = simTick;
         FixedDelta = fixedDelta;
+        Stations = stations;
         Placeable = null;
         Resolution = InteractionResolution.None;
         Hold = InteractionHold.None;
@@ -85,6 +88,9 @@ public struct InteractionContext
 
     /// <summary>The fixed simulation timestep in seconds for buff expiry math.</summary>
     public readonly float FixedDelta;
+
+    /// <summary>The per-world station session controller, or null when station binding is unavailable.</summary>
+    public readonly IStationSession? Stations;
 
     /// <summary>The content the interaction places. Set by a <see cref="InteractionStage.Select"/> handler.</summary>
     public Brick? Placeable;

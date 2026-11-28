@@ -1191,6 +1191,25 @@ public sealed class NetworkReplicationSystem
             var stage = new StageTransferInventory(inventoryEvent.SequenceNumber, inventoryEvent.Transfer.Value);
             store.Query<NetworkComponent, StageTransferInventory>(sessionEntity, 0f, ref stage);
         }
+
+        if (info.Type == typeof(StationActionEvent)
+            && store.TryGet(sessionEntity, out StationActionEvent stationEvent)
+            && stationEvent.Action != null)
+        {
+            StationActionOp op = stationEvent.Action.Value;
+            if (op.IsWithinWireBounds())
+            {
+                var stage = new StageStationAction(stationEvent.SequenceNumber, in op);
+                store.Query<NetworkComponent, StageStationAction>(sessionEntity, 0f, ref stage);
+            }
+            else
+            {
+                store.AddOrUpdate(sessionEntity, new StationActionEvent());
+                _logger.LogDebug(
+                    "Dropping out-of-bounds StationActionEvent {sequence} for entity {entity}.",
+                    stationEvent.SequenceNumber, sessionEntity);
+            }
+        }
     }
 
     private struct StageInput(in InputComponent input, uint stagedAtSimTick) : IForEachRef<NetworkComponent>
@@ -1233,6 +1252,16 @@ public sealed class NetworkReplicationSystem
         public void Execute(float delta, DataStore store, int entity, in NetworkComponent net)
         {
             net.StagedInventoryOps?.Stage(sequenceNumber, in _transfer);
+        }
+    }
+
+    private struct StageStationAction(uint sequenceNumber, in StationActionOp op) : IForEach<NetworkComponent>
+    {
+        private readonly StationActionOp _op = op;
+
+        public void Execute(float delta, DataStore store, int entity, in NetworkComponent net)
+        {
+            net.StagedStationActions?.Stage(sequenceNumber, in _op);
         }
     }
 

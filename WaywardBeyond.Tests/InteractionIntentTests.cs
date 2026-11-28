@@ -95,6 +95,29 @@ public class InteractionIntentTests
         Assert.Equal(InteractionKind.None, InteractionIntent.For(InteractionInput.None, laser));
     }
 
+    [Fact]
+    public void ActivateInputProducesActivateEdgeExceptWhenHoldingBlueprintItems()
+    {
+        Item panel = Placeable("wb:panel");
+        Item laser = Tool("laser", ToolType.Mining);
+        Item projector = Tool("wb:blueprint_projector", ToolType.Blueprint);
+        Item blueprintItem = new(
+            "wb:starter_lifeboat",
+            "Starter Lifeboat",
+            iconID: null,
+            maxStack: 1,
+            placeable: new PlaceableDefinition { Type = PlaceableType.Blueprint, ID = "builtin/starter_lifeboat" },
+            tool: null,
+            viewModel: null,
+            worldModel: null);
+
+        Assert.Equal(InteractionKind.Activate, InteractionIntent.For(InteractionInput.Activate, null));
+        Assert.Equal(InteractionKind.Activate, InteractionIntent.For(InteractionInput.Activate, panel));
+        Assert.Equal(InteractionKind.Activate, InteractionIntent.For(InteractionInput.Activate, laser));
+        Assert.Equal(InteractionKind.None, InteractionIntent.For(InteractionInput.Activate, projector));
+        Assert.Equal(InteractionKind.None, InteractionIntent.For(InteractionInput.Activate, blueprintItem));
+    }
+
     private static Item Placeable(string brickID)
     {
         var placeable = new PlaceableDefinition { Type = PlaceableType.Brick, ID = brickID };

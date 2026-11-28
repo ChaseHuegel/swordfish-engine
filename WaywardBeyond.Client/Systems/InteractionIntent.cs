@@ -17,6 +17,11 @@ internal static class InteractionIntent
     /// <summary>Returns the input edge the pressed <paramref name="input"/> produces with the held item.</summary>
     public static InteractionKind For(InteractionInput input, Item? heldItem)
     {
+        if (input == InteractionInput.Activate)
+        {
+            return IsBlueprintItem(heldItem) ? InteractionKind.None : InteractionKind.Activate;
+        }
+
         bool isModifierTool = PaintMode(heldItem) != null;
 
         if (input == InteractionInput.Primary && (isModifierTool || HasPrimaryBrickAction(heldItem)))
@@ -30,6 +35,13 @@ internal static class InteractionIntent
         }
 
         return InteractionKind.None;
+    }
+
+    /// <summary>Returns whether <paramref name="heldItem"/> is a Blueprint Projector or blueprint placeable item.</summary>
+    public static bool IsBlueprintItem(Item? heldItem)
+    {
+        return heldItem != null
+            && (heldItem.Tool?.Type == ToolType.Blueprint || ItemPlaceables.IsBlueprintPlaceable(heldItem));
     }
 
     /// <summary>

@@ -36,14 +36,14 @@ public static class InteractionResolver
             return InteractionResolution.None;
         }
 
-        //  Brick edits ride the primary edge. A held placeable makes the press a place; without one the
-        //  press breaks the targeted occupied cell.
-        if (request.Kind != InteractionKind.PrimaryPressed)
+        //  Brick edits ride the primary edge; brick activations ride the activate edge.
+        bool isActivate = request.Kind == InteractionKind.Activate;
+        if (request.Kind != InteractionKind.PrimaryPressed && !isActivate)
         {
             return InteractionResolution.None;
         }
 
-        bool isPlace = request.Placeable != null;
+        bool isPlace = !isActivate && request.Placeable != null;
 
         BrickInteraction hint = request.Hint.Value;
 
@@ -71,6 +71,17 @@ public static class InteractionResolver
         }
 
         Voxel hintVoxel = voxelObject.Get(hintCell.X, hintCell.Y, hintCell.Z);
+
+        if (isActivate)
+        {
+            //  Activate requires an occupied cell.
+            if (hintVoxel.ID == 0)
+            {
+                return InteractionResolution.None;
+            }
+
+            return new InteractionResolution(InteractionAction.Activate, entity, hintCell, hintVoxel);
+        }
 
         if (!isPlace)
         {
