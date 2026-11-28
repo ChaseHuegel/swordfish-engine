@@ -161,9 +161,10 @@ public static class CharacterStatisticsSeeder
                         continue;
                     }
 
-                    long restoredExpiry = currentSimTick > long.MaxValue - entry.Value
+                    long safeSimTick = Math.Max(0L, currentSimTick);
+                    long restoredExpiry = safeSimTick > long.MaxValue - entry.Value
                         ? long.MaxValue
-                        : currentSimTick + entry.Value;
+                        : safeSimTick + entry.Value;
                     StatisticsPersistence.UpsertEntry(entries, new Statistic(StatisticIds.BuffExpiresTick(buffId), restoredExpiry));
                     continue;
                 }
@@ -211,8 +212,14 @@ public static class CharacterStatisticsSeeder
             return new ClientSeed(health, oxygen, attributeMask);
         }
 
+        int allAttributesMask = (1 << StatisticIds.BaseAttributeIds.Length) - 1;
         for (var i = 0; i < clientSeed.Length; i++)
         {
+            if (health.HasValue && oxygen.HasValue && attributeMask == allAttributesMask)
+            {
+                break;
+            }
+
             string? id = clientSeed[i].ID;
             if (string.IsNullOrEmpty(id))
             {

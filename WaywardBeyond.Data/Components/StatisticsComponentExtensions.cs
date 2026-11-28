@@ -63,8 +63,14 @@ public static class StatisticsComponentExtensions
     /// <summary>Change-gated application of <paramref name="buff"/> onto <paramref name="stats"/>.</summary>
     public static bool ApplyBuff(ref Ref<StatisticsComponent> stats, in BuffDefinition buff, long currentSimTick, float fixedDt)
     {
-        return stats.Read.TryComputeBuffExpiry(in buff, currentSimTick, fixedDt, out long nextExpiry)
-            && SetValue(ref stats, buff.ExpiryStatId, nextExpiry);
+        if (!stats.Read.TryComputeBuffExpiry(in buff, currentSimTick, fixedDt, out long nextExpiry, out string? expiryStatId, out ReadOnlySpan<char> fallbackBuffId))
+        {
+            return false;
+        }
+
+        return expiryStatId != null
+            ? SetValue(ref stats, expiryStatId, nextExpiry)
+            : SetBuffExpiresTick(ref stats, fallbackBuffId.ToString(), nextExpiry);
     }
 
     /// <summary>Change-gated removal of <paramref name="id"/> from <paramref name="stats"/>.</summary>
@@ -145,7 +151,7 @@ public static class StatisticsComponentExtensions
     /// <summary>Change-gated application of <paramref name="buff"/> onto <paramref name="entity"/> in <paramref name="store"/>.</summary>
     public static bool ApplyBuff(this DataStore store, int entity, in BuffDefinition buff, long currentSimTick, float fixedDt)
     {
-        if (string.IsNullOrWhiteSpace(buff.ExpiryStatId))
+        if (string.IsNullOrWhiteSpace(buff.ExpiryStatId) && string.IsNullOrWhiteSpace(buff.ID))
         {
             return false;
         }

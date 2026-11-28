@@ -111,9 +111,9 @@ public readonly record struct HudBarDefinition
 
         string? colorTint = null;
         Vector4? colorTintRgba = null;
-        if (!string.IsNullOrWhiteSpace(ColorTint))
+        if (ColorTint != null)
         {
-            if (!HexColor.TryParseRgba(ColorTint, out Vector4 parsed))
+            if (string.IsNullOrWhiteSpace(ColorTint) || !HexColor.TryParseRgba(ColorTint, out Vector4 parsed))
             {
                 return Result<HudBarDefinition>.FromFailure($"HudBar \"{id}\" has invalid color_tint \"{ColorTint}\".");
             }

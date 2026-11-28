@@ -37,7 +37,7 @@ public readonly record struct BuffDefinition
     public float OxygenPerSec { get; init; }
 
     /// <summary>Precomputed <c>wb:buff.&lt;id&gt;.expires_tick</c> key for zero-allocation hot-path writes.</summary>
-    public string ExpiryStatId { get; init; }
+    public string ExpiryStatId { get; internal init; }
 
     /// <summary>Validates all fields and returns a normalized <see cref="BuffDefinition"/>.</summary>
     public Result<BuffDefinition> Validate()

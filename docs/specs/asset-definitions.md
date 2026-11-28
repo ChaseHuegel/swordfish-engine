@@ -14,7 +14,7 @@ Parser registration: `WaywardBeyond.Items/Injector.cs:15`
 (`RegisterTomlParser<BrickDefinitions>`), `WaywardBeyond.Recipes/Injector.cs:17`
 (`RegisterTomlParser<RecipeDefinitions>`), `WaywardBeyond.Skills/Injector.cs:16`
 (`RegisterTomlParser<SkillDefinitions>`), and
-`WaywardBeyond.Data/DataComposition.cs:26-27` (`RegisterHudBars`, `RegisterBuffs`).
+`WaywardBeyond.Data/DataComposition.cs:28-29` (`RegisterHudBars`, `RegisterBuffs`).
 
 ## Items (`assets/items/*.toml`)
 

@@ -46,7 +46,7 @@ See [region-blueprints](region-blueprints.md) for the client blueprint storage
 contract and `StorageConfig.BlueprintRoot`.
 
 The client owns `profile.db`. `characters` stores one raw nsd blob per
-character uuid. `CharacterSaveManager.Save` (`WaywardBeyond.Client/Saves/CharacterSaveManager.cs:49-112`)
+character uuid. `CharacterSaveManager.Save` (`WaywardBeyond.Client/Saves/CharacterSaveManager.cs:49-108`)
 merges durable namespaced replicated stats from `StatisticsComponent` into
 `Character.Statistics` (`WaywardBeyond.Data/Nsd/saves.nsd:68`) through
 `StatisticsPersistence.MergeClientStatistics`. It preserves skill XP
@@ -131,9 +131,9 @@ buff expiry ticks into tick-independent `wb:buff.<id>.remaining_ticks` counts so
 restarts preserve remaining buff duration. It keeps the
 pending record in memory until the worker commits it, so an immediate rejoin reads the
 latest transform, game mode, and `CharacterEntityData.Statistics`
-(`WaywardBeyond.Data/Nsd/saves.nsd:105`) through `GetCharacterEntity`. A character with
+(`WaywardBeyond.Data/Nsd/saves.nsd:112`) through `GetCharacterEntity`. A character with
 no row in the level starts at `Level.Spawn` with `Level.DefaultGameMode`.
-`CharacterStatisticsSeeder.SeedAuthoritativeStatistics` (`WaywardBeyond.Gameplay/Statistics/CharacterStatisticsSeeder.cs:191`)
+`CharacterStatisticsSeeder.SeedAuthoritativeStatistics` (`WaywardBeyond.Gameplay/Statistics/CharacterStatisticsSeeder.cs:192`)
 seeds vitals and restores `wb:buff.<id>.remaining_ticks` relative to the world's current
 sim tick from `CharacterEntityData.Statistics` on rejoin, or seeds from bounded
 `CharacterState.Statistics` (`WaywardBeyond.Data/Nsd/levels.nsd:77`) and defaults on first

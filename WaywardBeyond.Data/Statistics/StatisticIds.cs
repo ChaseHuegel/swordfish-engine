@@ -36,6 +36,9 @@ public static class StatisticIds
     /// <summary>Environmental pressurization flag stat ID (0 = vacuum, 1 = pressurized).</summary>
     public const string PRESSURIZED = "wb:pressurized";
 
+    /// <summary>Prefix for S.P.A.C.E.R. attribute stat IDs.</summary>
+    public const string ATTR_PREFIX = "wb:attr.";
+
     /// <summary>S.P.A.C.E.R. Strength attribute stat ID.</summary>
     public const string ATTR_STRENGTH = "wb:attr.strength";
 
@@ -162,6 +165,52 @@ public static class StatisticIds
         }
 
         return string.Concat(BUFF_PREFIX, buffId, BUFF_REMAINING_TICKS_SUFFIX);
+    }
+
+    /// <summary>Returns whether <paramref name="statId"/> has a valid <c>&lt;namespace&gt;:&lt;name&gt;</c> stat identifier shape.</summary>
+    public static bool IsNamespacedStatId(ReadOnlySpan<char> statId)
+    {
+        if (statId.IsEmpty || char.IsWhiteSpace(statId[0]) || char.IsWhiteSpace(statId[^1]))
+        {
+            return false;
+        }
+
+        int colonIndex = statId.IndexOf(':');
+        if (colonIndex <= 0 || colonIndex >= statId.Length - 1)
+        {
+            return false;
+        }
+
+        ReadOnlySpan<char> namespacePart = statId[..colonIndex];
+        for (var i = 0; i < namespacePart.Length; i++)
+        {
+            char c = namespacePart[i];
+            if (c == '.' || char.IsWhiteSpace(c))
+            {
+                return false;
+            }
+        }
+
+        return !statId[(colonIndex + 1)..].IsWhiteSpace();
+    }
+
+    /// <summary>Returns whether <paramref name="statId"/> stores an unscaled integer (attribute or flag) rather than fixed-point units.</summary>
+    public static bool IsIntegerStat(ReadOnlySpan<char> statId)
+    {
+        if (statId.Equals(PRESSURIZED.AsSpan(), StringComparison.Ordinal))
+        {
+            return true;
+        }
+
+        return statId.Length > ATTR_PREFIX.Length
+            && statId.StartsWith(ATTR_PREFIX.AsSpan(), StringComparison.Ordinal)
+            && !statId[ATTR_PREFIX.Length..].IsWhiteSpace();
+    }
+
+    /// <summary>Returns whether <paramref name="statId"/> names any buff timer entry (active expiry or persisted remaining ticks).</summary>
+    public static bool IsBuffTimerKey(ReadOnlySpan<char> statId)
+    {
+        return IsBuffExpiresTickKey(statId) || IsBuffRemainingTicksKey(statId);
     }
 
     /// <summary>Returns whether <paramref name="statId"/> names an active buff expiry tick entry.</summary>

@@ -187,21 +187,54 @@ public partial struct StatisticsComponent : IDataComponent
     /// <summary>Applies <paramref name="buff"/> using its <see cref="BuffDefinition.StackPolicy"/>, avoiding allocations when updating an active entry.</summary>
     public bool ApplyBuff(in BuffDefinition buff, long currentSimTick, float fixedDt)
     {
-        return TryComputeBuffExpiry(in buff, currentSimTick, fixedDt, out long nextExpiry)
-            && SetValue(buff.ExpiryStatId, nextExpiry);
-    }
-
-    /// <summary>Computes the next expiry tick for <paramref name="buff"/> against this component's current state.</summary>
-    internal readonly bool TryComputeBuffExpiry(in BuffDefinition buff, long currentSimTick, float fixedDt, out long nextExpiry)
-    {
-        if (string.IsNullOrWhiteSpace(buff.ExpiryStatId))
+        if (!TryComputeBuffExpiry(in buff, currentSimTick, fixedDt, out long nextExpiry, out string? expiryStatId, out ReadOnlySpan<char> fallbackBuffId))
         {
-            nextExpiry = 0L;
             return false;
         }
 
-        long existingExpiry = TryGetValue(buff.ExpiryStatId, out long current) ? current : 0L;
-        return buff.TryComputeNextExpiresTick(existingExpiry, currentSimTick, fixedDt, out nextExpiry);
+        return expiryStatId != null
+            ? SetValue(expiryStatId, nextExpiry)
+            : SetBuffExpiresTick(fallbackBuffId.ToString(), nextExpiry);
+    }
+
+    /// <summary>Computes the next expiry tick for <paramref name="buff"/> against this component's current state.</summary>
+    internal readonly bool TryComputeBuffExpiry(
+        in BuffDefinition buff,
+        long currentSimTick,
+        float fixedDt,
+        out long nextExpiry,
+        out string? expiryStatId,
+        out ReadOnlySpan<char> fallbackBuffId
+    )
+    {
+        if (!string.IsNullOrWhiteSpace(buff.ExpiryStatId))
+        {
+            if (!StatisticIds.IsBuffExpiresTickKey(buff.ExpiryStatId.AsSpan()))
+            {
+                nextExpiry = 0L;
+                expiryStatId = null;
+                fallbackBuffId = default;
+                return false;
+            }
+
+            expiryStatId = buff.ExpiryStatId;
+            fallbackBuffId = default;
+            long existingExpiry = TryGetValue(expiryStatId, out long current) ? current : 0L;
+            return buff.TryComputeNextExpiresTick(existingExpiry, currentSimTick, fixedDt, out nextExpiry);
+        }
+
+        if (string.IsNullOrWhiteSpace(buff.ID))
+        {
+            nextExpiry = 0L;
+            expiryStatId = null;
+            fallbackBuffId = default;
+            return false;
+        }
+
+        expiryStatId = null;
+        fallbackBuffId = buff.ID.AsSpan().Trim();
+        long fallbackExisting = TryGetBuffExpiresTick(fallbackBuffId, out long currentById) ? currentById : 0L;
+        return buff.TryComputeNextExpiresTick(fallbackExisting, currentSimTick, fixedDt, out nextExpiry);
     }
 
     /// <summary>Removes <paramref name="id"/> if present, returning whether an entry was removed.</summary>

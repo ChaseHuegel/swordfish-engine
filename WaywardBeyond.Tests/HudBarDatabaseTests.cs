@@ -202,6 +202,15 @@ public sealed class HudBarDatabaseTests
                 color_tint = "not-a-hex"
 
                 [[hud_bars]]
+                id = "wb:blank_color"
+                stat_id = "wb:health"
+                default_max = 100
+                icon_full = "full.png"
+                icon_half = "half.png"
+                icon_empty = "empty.png"
+                color_tint = "   "
+
+                [[hud_bars]]
                 id = "wb:wrong_type"
                 stat_id = "wb:health"
                 default_max = 100
@@ -258,6 +267,7 @@ public sealed class HudBarDatabaseTests
             Assert.False(database.Get("wb:bad_threshold_range").Success);
             Assert.False(database.Get("wb:inverted_thresholds").Success);
             Assert.False(database.Get("wb:bad_color").Success);
+            Assert.False(database.Get("wb:blank_color").Success);
             Assert.False(database.Get("wb:wrong_type").Success);
             Assert.False(database.Get("wb:duplicate_alias").Success);
             Assert.False(database.Get("wb:mixed_array_item").Success);

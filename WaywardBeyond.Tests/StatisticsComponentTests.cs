@@ -5,6 +5,7 @@ using WaywardBeyond.Data;
 using WaywardBeyond.Data.Buffs;
 using WaywardBeyond.Data.Components;
 using WaywardBeyond.Data.Statistics;
+using WaywardBeyond.Gameplay.Statistics;
 using Xunit;
 
 namespace WaywardBeyond.Tests;
@@ -143,6 +144,66 @@ public sealed class StatisticsComponentTests
         BuffDefinition invalidPolicyBuff = refreshBuff with { StackPolicy = (BuffStackPolicy)99 };
         Assert.False(stats.ApplyBuff(in invalidPolicyBuff, currentSimTick: 100L, fixedDt));
         Assert.False(stats.ApplyBuff(in refreshBuff, currentSimTick: -1L, fixedDt));
+
+        //  Direct unvalidated construction (ExpiryStatId unset) falls back to ID cleanly.
+        var unvalidatedBuff = new BuffDefinition
+        {
+            ID = "wb:direct_buff",
+            Name = "buff.direct",
+            DurationSeconds = 5f,
+            StackPolicy = BuffStackPolicy.Refresh,
+        };
+        Assert.True(stats.ApplyBuff(in unvalidatedBuff, currentSimTick: 100L, fixedDt));
+        Assert.True(stats.TryGetBuffExpiresTick("wb:direct_buff", out long directExpiry));
+        Assert.Equal(400L, directExpiry);
+
+        var directStore = new DataStore();
+        int entity = directStore.Alloc();
+        Assert.True(directStore.ApplyBuff(entity, in unvalidatedBuff, currentSimTick: 200L, fixedDt));
+        Assert.True(directStore.TryGet(entity, out StatisticsComponent storedDirect));
+        Assert.True(storedDirect.TryGetBuffExpiresTick("wb:direct_buff", out long storedDirectExpiry));
+        Assert.Equal(500L, storedDirectExpiry);
+    }
+
+    [Fact]
+    public void EntityStatisticModifierSourceHandlesIntegerFixedPointAndBuffTimerKeys()
+    {
+        var store = new DataStore();
+        int entity = store.Alloc();
+
+        var stats = new StatisticsComponent();
+        stats.SetValue(StatisticIds.ATTR_CONSTITUTION, 5L);
+        stats.SetFlag(StatisticIds.PRESSURIZED, true);
+        stats.SetFixed(StatisticIds.HEALTH_MAX, 120f);
+        stats.SetFixed("mod:jump_boost", 2.5f);
+        stats.SetBuffExpiresTick("wb:well_fed", 5000L);
+        store.AddOrUpdate(entity, stats);
+
+        var resolver = new StatResolver([new EntityStatisticModifierSource()]);
+
+        float constitution = resolver.Evaluate(new StatQuery(StatisticIds.ATTR_CONSTITUTION, defaultBase: 0f, subject: StatSubject.Entity, store: store, entity: entity));
+        float pressurized = resolver.Evaluate(new StatQuery(StatisticIds.PRESSURIZED, defaultBase: 0f, subject: StatSubject.Entity, store: store, entity: entity));
+        float healthMax = resolver.Evaluate(new StatQuery(StatisticIds.HEALTH_MAX, defaultBase: 0f, subject: StatSubject.Entity, store: store, entity: entity));
+        float jumpBoost = resolver.Evaluate(new StatQuery("mod:jump_boost", defaultBase: 1f, subject: StatSubject.Entity, store: store, entity: entity));
+        float buffExpiry = resolver.Evaluate(new StatQuery(StatisticIds.BuffExpiresTick("wb:well_fed"), defaultBase: 0f, subject: StatSubject.Entity, store: store, entity: entity));
+
+        Assert.Equal(5f, constitution, precision: 5);
+        Assert.Equal(1f, pressurized, precision: 5);
+        Assert.Equal(120f, healthMax, precision: 5);
+        Assert.Equal(3.5f, jumpBoost, precision: 5);
+        Assert.Equal(0f, buffExpiry, precision: 5);
+
+        Assert.True(StatisticIds.IsNamespacedStatId("wb:health"));
+        Assert.True(StatisticIds.IsNamespacedStatId("wb:attr.strength"));
+        Assert.True(StatisticIds.IsNamespacedStatId("mod:shield"));
+        Assert.True(StatisticIds.IsNamespacedStatId("my_mod:mana.max"));
+        Assert.False(StatisticIds.IsNamespacedStatId("bricks.broken:wb:rock"));
+        Assert.False(StatisticIds.IsNamespacedStatId("bricks.placed:wb:rock"));
+        Assert.False(StatisticIds.IsNamespacedStatId("bricks.broken"));
+        Assert.False(StatisticIds.IsNamespacedStatId(" :foo"));
+        Assert.False(StatisticIds.IsNamespacedStatId("wb:"));
+        Assert.False(StatisticIds.IsNamespacedStatId("wb:   "));
+        Assert.False(StatisticIds.IsNamespacedStatId(""));
     }
 
     [Fact]

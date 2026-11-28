@@ -150,6 +150,7 @@ public sealed class ServerJoinStatisticsTests
             [
                 new Statistic("mining", 250L),
                 new Statistic("bricks.broken", 14L),
+                new Statistic("bricks.broken:wb:rock", 25L),
             ],
             _Inventory: null
         );
@@ -190,6 +191,10 @@ public sealed class ServerJoinStatisticsTests
         liveStats.SetBuffExpiresTick("wb:well_fed", 5000L);
         liveStats.SetValue(StatisticIds.ATTR_STRENGTH, 7L);
         liveStats.SetFixed("mod:shield", 25f);
+        liveStats.SetValue("bricks.broken:wb:rock", 14L);
+        liveStats.SetValue("bricks.placed:wb:rock", 3L);
+        liveStats.SetValue(" :malformed", 9L);
+        liveStats.SetValue("wb:", 5L);
         store.AddOrUpdate(player, liveStats);
 
         GameState previous = WaywardBeyondClient.GameState.Get();
@@ -208,10 +213,14 @@ public sealed class ServerJoinStatisticsTests
         Assert.NotNull(persisted.Statistics);
         Assert.Contains(persisted.Statistics!, s => s.ID == "mining" && s.Value == 250L);
         Assert.Contains(persisted.Statistics!, s => s.ID == "bricks.broken" && s.Value == 14L);
+        Assert.Contains(persisted.Statistics!, s => s.ID == "bricks.broken:wb:rock" && s.Value == 25L);
         Assert.Contains(persisted.Statistics!, s => s.ID == StatisticIds.HEALTH && s.Value == 68_500L);
         Assert.Contains(persisted.Statistics!, s => s.ID == StatisticIds.OXYGEN && s.Value == 40_000L);
         Assert.Contains(persisted.Statistics!, s => s.ID == StatisticIds.ATTR_STRENGTH && s.Value == 7L);
         Assert.Contains(persisted.Statistics!, s => s.ID == "mod:shield" && s.Value == 25_000L);
+        Assert.DoesNotContain(persisted.Statistics!, s => s.ID == "bricks.placed:wb:rock");
+        Assert.DoesNotContain(persisted.Statistics!, s => s.ID == " :malformed");
+        Assert.DoesNotContain(persisted.Statistics!, s => s.ID == "wb:");
         Assert.DoesNotContain(persisted.Statistics!, s => s.ID == StatisticIds.PRESSURIZED);
         Assert.DoesNotContain(persisted.Statistics!, s => s.ID == StatisticIds.BuffExpiresTick("wb:well_fed"));
     }

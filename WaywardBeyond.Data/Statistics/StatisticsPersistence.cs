@@ -40,8 +40,8 @@ public static class StatisticsPersistence
         for (var i = 0; i < source.Length; i++)
         {
             Statistic entry = source[i];
-            if (string.IsNullOrWhiteSpace(entry.ID)
-                || entry.ID.IndexOf(':') <= 0
+            if (entry.ID == null
+                || !StatisticIds.IsNamespacedStatId(entry.ID.AsSpan())
                 || IsTransientClientStat(entry.ID))
             {
                 continue;
@@ -149,8 +149,7 @@ public static class StatisticsPersistence
     private static bool IsTransientClientStat(string id)
     {
         return string.Equals(id, StatisticIds.PRESSURIZED, StringComparison.Ordinal)
-            || StatisticIds.IsBuffExpiresTickKey(id.AsSpan())
-            || StatisticIds.IsBuffRemainingTicksKey(id.AsSpan());
+            || StatisticIds.IsBuffTimerKey(id.AsSpan());
     }
 
     private static Statistic[]? StripTransientCharacterEntries(Statistic[]? existing)
