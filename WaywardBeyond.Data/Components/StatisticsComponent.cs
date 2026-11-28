@@ -1,6 +1,7 @@
 using System;
 using Krill;
 using WaywardBeyond.Data.Buffs;
+using WaywardBeyond.Data.Statistics;
 
 namespace WaywardBeyond.Data.Components;
 
@@ -28,25 +29,15 @@ public partial struct StatisticsComponent : IDataComponent
     /// <summary>Attempts to read the raw integer value for <paramref name="id"/> without allocating.</summary>
     public readonly bool TryGetValue(ReadOnlySpan<char> id, out long value)
     {
-        Statistic[]? entries = Entries;
-        if (entries == null || id.IsEmpty)
+        int index = IndexOf(id);
+        if (index < 0)
         {
             value = 0L;
             return false;
         }
 
-        for (var i = 0; i < entries.Length; i++)
-        {
-            string? entryId = entries[i].ID;
-            if (entryId != null && entryId.AsSpan().Equals(id, StringComparison.Ordinal))
-            {
-                value = entries[i].Value;
-                return true;
-            }
-        }
-
-        value = 0L;
-        return false;
+        value = Entries![index].Value;
+        return true;
     }
 
     /// <summary>Gets the raw integer value for <paramref name="id"/>, or <paramref name="defaultValue"/> when absent.</summary>
@@ -64,14 +55,14 @@ public partial struct StatisticsComponent : IDataComponent
             return false;
         }
 
-        value = StatIds.FromFixed(raw);
+        value = StatisticIds.FromFixed(raw);
         return true;
     }
 
     /// <summary>Gets a fixed-point vital in user units, or <paramref name="defaultValue"/> when absent.</summary>
     public readonly float GetFixed(string? id, float defaultValue = 0f)
     {
-        return TryGetValue(id, out long raw) ? StatIds.FromFixed(raw) : defaultValue;
+        return TryGetValue(id, out long raw) ? StatisticIds.FromFixed(raw) : defaultValue;
     }
 
     /// <summary>Reads a boolean flag stat (<c>!= 0</c>), returning <c>false</c> when absent.</summary>
@@ -98,8 +89,28 @@ public partial struct StatisticsComponent : IDataComponent
     public readonly float GetBuffRemainingSeconds(ReadOnlySpan<char> buffId, long currentSimTick, float fixedDt)
     {
         return TryGetBuffExpiresTick(buffId, out long expiresTick)
-            ? StatIds.ComputeRemainingSeconds(expiresTick, currentSimTick, fixedDt)
+            ? StatisticIds.ComputeRemainingSeconds(expiresTick, currentSimTick, fixedDt)
             : 0f;
+    }
+
+    /// <summary>Returns whether any buff entry has expired at or before <paramref name="currentSimTick"/>.</summary>
+    internal readonly bool HasExpiredBuffs(long currentSimTick)
+    {
+        Statistic[]? entries = Entries;
+        if (entries == null || entries.Length == 0)
+        {
+            return false;
+        }
+
+        for (var i = 0; i < entries.Length; i++)
+        {
+            if (IsExpiredBuff(in entries[i], currentSimTick))
+            {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     /// <summary>Sets <paramref name="id"/> to <paramref name="value"/>, returning whether the state changed.</summary>
@@ -110,26 +121,23 @@ public partial struct StatisticsComponent : IDataComponent
             return false;
         }
 
-        Statistic[]? entries = Entries;
-        if (entries == null)
+        int existingIndex = IndexOf(id.AsSpan());
+        if (existingIndex >= 0)
         {
-            Entries = [new Statistic(id, value)];
-            return true;
-        }
-
-        for (var i = 0; i < entries.Length; i++)
-        {
-            if (!string.Equals(entries[i].ID, id, StringComparison.Ordinal))
-            {
-                continue;
-            }
-
-            if (entries[i].Value == value)
+            Statistic[] existingEntries = Entries!;
+            if (existingEntries[existingIndex].Value == value)
             {
                 return false;
             }
 
-            entries[i].Value = value;
+            existingEntries[existingIndex].Value = value;
+            return true;
+        }
+
+        Statistic[]? entries = Entries;
+        if (entries == null)
+        {
+            Entries = [new Statistic(id, value)];
             return true;
         }
 
@@ -143,7 +151,7 @@ public partial struct StatisticsComponent : IDataComponent
     /// <summary>Sets a fixed-point vital from user units, returning whether the fixed value changed.</summary>
     public bool SetFixed(string id, float value)
     {
-        return StatIds.TryToFixed(value, out long fixedValue) && SetValue(id, fixedValue);
+        return StatisticIds.TryToFixed(value, out long fixedValue) && SetValue(id, fixedValue);
     }
 
     /// <summary>Sets a boolean flag stat (<c>1</c> or <c>0</c>), returning whether the flag changed.</summary>
@@ -173,24 +181,27 @@ public partial struct StatisticsComponent : IDataComponent
             return true;
         }
 
-        return SetValue(StatIds.BuffExpiresTick(buffId), expiresTick);
+        return SetValue(StatisticIds.BuffExpiresTick(buffId), expiresTick);
     }
 
     /// <summary>Applies <paramref name="buff"/> using its <see cref="BuffDefinition.StackPolicy"/>, avoiding allocations when updating an active entry.</summary>
     public bool ApplyBuff(in BuffDefinition buff, long currentSimTick, float fixedDt)
     {
+        return TryComputeBuffExpiry(in buff, currentSimTick, fixedDt, out long nextExpiry)
+            && SetValue(buff.ExpiryStatId, nextExpiry);
+    }
+
+    /// <summary>Computes the next expiry tick for <paramref name="buff"/> against this component's current state.</summary>
+    internal readonly bool TryComputeBuffExpiry(in BuffDefinition buff, long currentSimTick, float fixedDt, out long nextExpiry)
+    {
         if (string.IsNullOrWhiteSpace(buff.ExpiryStatId))
         {
+            nextExpiry = 0L;
             return false;
         }
 
         long existingExpiry = TryGetValue(buff.ExpiryStatId, out long current) ? current : 0L;
-        if (!buff.TryComputeNextExpiresTick(existingExpiry, currentSimTick, fixedDt, out long nextExpiry))
-        {
-            return false;
-        }
-
-        return SetValue(buff.ExpiryStatId, nextExpiry);
+        return buff.TryComputeNextExpiresTick(existingExpiry, currentSimTick, fixedDt, out nextExpiry);
     }
 
     /// <summary>Removes <paramref name="id"/> if present, returning whether an entry was removed.</summary>
@@ -284,7 +295,7 @@ public partial struct StatisticsComponent : IDataComponent
         for (var i = 0; i < entries.Length; i++)
         {
             string? entryId = entries[i].ID;
-            if (entryId != null && StatIds.MatchesBuffExpiresTick(entryId.AsSpan(), buffId))
+            if (entryId != null && StatisticIds.MatchesBuffExpiresTick(entryId.AsSpan(), buffId))
             {
                 return i;
             }
@@ -325,7 +336,7 @@ public partial struct StatisticsComponent : IDataComponent
     private static bool IsExpiredBuff(in Statistic entry, long currentSimTick)
     {
         return entry.ID != null
-            && StatIds.IsBuffExpiresTickKey(entry.ID.AsSpan())
+            && StatisticIds.IsBuffExpiresTickKey(entry.ID.AsSpan())
             && entry.Value <= currentSimTick;
     }
 }

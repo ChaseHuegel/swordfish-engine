@@ -2,7 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using Swordfish.Library.Util;
-using WaywardBeyond.Data.Components;
+using WaywardBeyond.Data.Statistics;
 
 namespace WaywardBeyond.Data.Buffs;
 
@@ -106,7 +106,7 @@ public readonly record struct BuffDefinition
             Description = description,
             Icon = icon,
             StatModifiers = validatedModifiers,
-            ExpiryStatId = StatIds.BuffExpiresTick(id),
+            ExpiryStatId = StatisticIds.BuffExpiresTick(id),
         };
         return Result<BuffDefinition>.FromSuccess(normalized);
     }
@@ -134,16 +134,16 @@ public readonly record struct BuffDefinition
                     return false;
                 }
 
-                nextExpiresTick = StatIds.ComputeExpiresTick(currentSimTick, DurationSeconds, fixedDt);
+                nextExpiresTick = StatisticIds.ComputeExpiresTick(currentSimTick, DurationSeconds, fixedDt);
                 return nextExpiresTick != existingExpiresTick;
 
             case BuffStackPolicy.Extend:
                 long baseTick = existingExpiresTick > currentSimTick ? existingExpiresTick : currentSimTick;
-                nextExpiresTick = StatIds.ComputeExpiresTick(baseTick, DurationSeconds, fixedDt);
+                nextExpiresTick = StatisticIds.ComputeExpiresTick(baseTick, DurationSeconds, fixedDt);
                 return nextExpiresTick != existingExpiresTick;
 
             case BuffStackPolicy.Refresh:
-                nextExpiresTick = StatIds.ComputeExpiresTick(currentSimTick, DurationSeconds, fixedDt);
+                nextExpiresTick = StatisticIds.ComputeExpiresTick(currentSimTick, DurationSeconds, fixedDt);
                 return nextExpiresTick != existingExpiresTick;
 
             default:

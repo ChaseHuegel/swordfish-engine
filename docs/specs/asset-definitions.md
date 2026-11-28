@@ -499,7 +499,7 @@ Buff definitions live in the shared `WaywardBeyond.Data` module under `WaywardBe
 | `[[stat_modifiers]]` | table array | rows of `stat_id` with `flat_delta`, `percent_delta`, or both (`!= 0`) |
 | `[regen]` / `[regen_rates]` | table or top-level keys | finite `health_per_sec` and `oxygen_per_sec` regen rates |
 
-A buff cannot specify both top-level regen keys and a regen sub-table, or both `[regen]` and `[regen_rates]` (`WaywardBeyond.Data/Buffs/BuffDefinitionsParser.cs:179-205`). `BuffDefinition.Validate` (`WaywardBeyond.Data/Buffs/BuffDefinition.cs:43-112`) returns `Result<BuffDefinition>` and rejects blank ids or names, non-positive durations, invalid stack policies, non-finite regen rates, and modifiers lacking a stat key or non-zero finite delta.
+A buff cannot specify both top-level regen keys and a regen sub-table, or both `[regen]` and `[regen_rates]` (`WaywardBeyond.Data/Buffs/BuffDefinitionsParser.cs:159-185`). `BuffDefinition.Validate` (`WaywardBeyond.Data/Buffs/BuffDefinition.cs:43-112`) returns `Result<BuffDefinition>` and rejects blank ids or names, non-positive durations, invalid stack policies, non-finite regen rates, and modifiers lacking a stat key or non-zero finite delta. Duplicate alias keys within one table or documents mixing `[[buffs]]`/`[[hud_bars]]` with top-level keys are rejected by `TomlTableReader` (`WaywardBeyond.Data/TomlTableReader.cs:10-82`).
 
 ## Localization
 

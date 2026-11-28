@@ -7,33 +7,90 @@ namespace WaywardBeyond.Data;
 /// <summary>Shared case- and style-tolerant TOML table field readers for data definitions.</summary>
 internal static class TomlTableReader
 {
-    /// <summary>Finds a TOML value by key name, matching snake_case and PascalCase case-insensitively.</summary>
-    public static bool TryFindValue(TomlTable table, string key, out TomlValue? value)
+    /// <summary>Splits a TOML document supporting either a <c>[[arrayKey]]</c> table array or a single flat table into rows.</summary>
+    public static List<(TomlTable? Table, string? Error)> ReadDocumentRows(TomlDocument document, string arrayKey)
     {
-        if (table.ContainsKey(key))
+        var rows = new List<(TomlTable? Table, string? Error)>();
+        if (!TryFindValue(document, arrayKey, out TomlValue? arrayValue, out string? error))
         {
-            value = table.GetValue(key);
-            return true;
+            rows.Add((null, error));
+            return rows;
         }
+
+        if (arrayValue != null)
+        {
+            if (document.Keys.Count > 1)
+            {
+                rows.Add((null, $"Document cannot mix \"[[{arrayKey}]]\" with top-level keys."));
+                return rows;
+            }
+
+            if (arrayValue is not TomlArray array)
+            {
+                rows.Add((null, $"Field \"{arrayKey}\" must be an array of tables."));
+                return rows;
+            }
+
+            for (var i = 0; i < array.Count; i++)
+            {
+                if (array[i] is not TomlTable rowTable)
+                {
+                    rows.Add((null, $"Entry {i} in \"{arrayKey}\" must be a table."));
+                    continue;
+                }
+
+                rows.Add((rowTable, null));
+            }
+
+            return rows;
+        }
+
+        if (document.Keys.Count > 0)
+        {
+            rows.Add((document, null));
+        }
+
+        return rows;
+    }
+
+    /// <summary>Finds a TOML value by key name, matching snake_case and PascalCase case-insensitively and rejecting duplicate aliases.</summary>
+    public static bool TryFindValue(TomlTable table, string key, out TomlValue? value, out string? error)
+    {
+        value = null;
+        error = null;
+        var matchCount = 0;
 
         foreach (string candidate in table.Keys)
         {
-            if (KeysMatch(candidate, key))
+            if (!KeysMatch(candidate, key))
             {
-                value = table.GetValue(candidate);
-                return true;
+                continue;
             }
+
+            matchCount++;
+            if (matchCount > 1)
+            {
+                value = null;
+                error = $"Field \"{key}\" is declared more than once.";
+                return false;
+            }
+
+            value = table.GetValue(candidate);
         }
 
-        value = null;
-        return false;
+        return true;
     }
 
     /// <summary>Reads an optional string field, reporting an error when the TOML value is not a string.</summary>
     public static bool TryGetString(TomlTable table, string key, out string? value, out string? error)
     {
-        error = null;
-        if (!TryFindValue(table, key, out TomlValue? raw) || raw == null)
+        if (!TryFindValue(table, key, out TomlValue? raw, out error))
+        {
+            value = null;
+            return false;
+        }
+
+        if (raw == null)
         {
             value = null;
             return true;
@@ -53,8 +110,13 @@ internal static class TomlTableReader
     /// <summary>Reads an optional integer field, falling back to <paramref name="defaultValue"/> when absent.</summary>
     public static bool TryGetInt(TomlTable table, string key, int defaultValue, out int value, out string? error)
     {
-        error = null;
-        if (!TryFindValue(table, key, out TomlValue? raw) || raw == null)
+        if (!TryFindValue(table, key, out TomlValue? raw, out error))
+        {
+            value = defaultValue;
+            return false;
+        }
+
+        if (raw == null)
         {
             value = defaultValue;
             return true;
@@ -81,8 +143,13 @@ internal static class TomlTableReader
     /// <summary>Reads an optional floating-point field, accepting both TOML floats and integers.</summary>
     public static bool TryGetFloat(TomlTable table, string key, out float? value, out string? error)
     {
-        error = null;
-        if (!TryFindValue(table, key, out TomlValue? raw) || raw == null)
+        if (!TryFindValue(table, key, out TomlValue? raw, out error))
+        {
+            value = null;
+            return false;
+        }
+
+        if (raw == null)
         {
             value = null;
             return true;
@@ -108,8 +175,13 @@ internal static class TomlTableReader
     /// <summary>Reads an optional boolean field, falling back to <paramref name="defaultValue"/> when absent.</summary>
     public static bool TryGetBool(TomlTable table, string key, bool defaultValue, out bool value, out string? error)
     {
-        error = null;
-        if (!TryFindValue(table, key, out TomlValue? raw) || raw == null)
+        if (!TryFindValue(table, key, out TomlValue? raw, out error))
+        {
+            value = defaultValue;
+            return false;
+        }
+
+        if (raw == null)
         {
             value = defaultValue;
             return true;
@@ -129,8 +201,13 @@ internal static class TomlTableReader
     /// <summary>Reads an optional nested TOML table.</summary>
     public static bool TryGetTable(TomlTable table, string key, out TomlTable? child, out string? error)
     {
-        error = null;
-        if (!TryFindValue(table, key, out TomlValue? raw) || raw == null)
+        if (!TryFindValue(table, key, out TomlValue? raw, out error))
+        {
+            child = null;
+            return false;
+        }
+
+        if (raw == null)
         {
             child = null;
             return true;
@@ -150,8 +227,13 @@ internal static class TomlTableReader
     /// <summary>Reads an optional TOML array of tables.</summary>
     public static bool TryGetTableArray(TomlTable table, string key, out List<TomlTable>? items, out string? error)
     {
-        error = null;
-        if (!TryFindValue(table, key, out TomlValue? raw) || raw == null)
+        if (!TryFindValue(table, key, out TomlValue? raw, out error))
+        {
+            items = null;
+            return false;
+        }
+
+        if (raw == null)
         {
             items = null;
             return true;

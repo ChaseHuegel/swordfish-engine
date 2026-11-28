@@ -9,6 +9,7 @@ using WaywardBeyond.Client.Configuration;
 using WaywardBeyond.Data;
 using WaywardBeyond.Data.Characters;
 using WaywardBeyond.Data.Components;
+using WaywardBeyond.Data.Statistics;
 
 namespace WaywardBeyond.Client.Saves;
 
@@ -91,7 +92,7 @@ internal sealed class CharacterSaveManager(
 
             if (store.TryGet(entity, out StatisticsComponent statistics))
             {
-                character.Statistics = StatisticsComponentExtensions.MergeClientSavedStatistics(character.Statistics, in statistics);
+                character.Statistics = StatisticsPersistence.MergeClientStatistics(character.Statistics, statistics.Entries);
             }
         }
 

@@ -211,12 +211,35 @@ public sealed class HudBarDatabaseTests
                 icon_empty = "empty.png"
 
                 [[hud_bars]]
+                id = "wb:duplicate_alias"
+                stat_id = "wb:health"
+                StatId = "wb:oxygen"
+                default_max = 100
+                icon_full = "full.png"
+                icon_half = "half.png"
+                icon_empty = "empty.png"
+
+                [[hud_bars]]
                 id = "wb:valid"
                 stat_id = "wb:other"
                 default_max = 50
                 icon_full = "other_full.png"
                 icon_half = "other_half.png"
                 icon_empty = "other_empty.png"
+                """
+            );
+
+            File.WriteAllText(
+                Path.Combine(barsDir, "mixed_flat_and_array.toml"),
+                """
+                id = "wb:flat_stray"
+                [[hud_bars]]
+                id = "wb:mixed_array_item"
+                stat_id = "wb:health"
+                default_max = 100
+                icon_full = "full.png"
+                icon_half = "half.png"
+                icon_empty = "empty.png"
                 """
             );
 
@@ -236,6 +259,8 @@ public sealed class HudBarDatabaseTests
             Assert.False(database.Get("wb:inverted_thresholds").Success);
             Assert.False(database.Get("wb:bad_color").Success);
             Assert.False(database.Get("wb:wrong_type").Success);
+            Assert.False(database.Get("wb:duplicate_alias").Success);
+            Assert.False(database.Get("wb:mixed_array_item").Success);
             Assert.False(database.All is System.Collections.Generic.List<HudBarDefinition>);
         }
         finally

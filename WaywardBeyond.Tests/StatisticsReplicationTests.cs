@@ -17,6 +17,7 @@ using WaywardBeyond.Client.Systems;
 using WaywardBeyond.Config;
 using WaywardBeyond.Data.Components;
 using WaywardBeyond.Data.Networking;
+using WaywardBeyond.Data.Statistics;
 using WaywardBeyond.Gameplay.Networking;
 using WaywardBeyond.Networking;
 using WaywardBeyond.Networking.Codecs;
@@ -57,15 +58,15 @@ public sealed class StatisticsReplicationTests
         LoopbackClient clientB = await harness.AddPlayerClientAsync(Uuid.FromValue(1002));
 
         var statsA = new StatisticsComponent();
-        statsA.SetFixed(StatIds.HEALTH, 100f);
-        statsA.SetFixed(StatIds.HEALTH_MAX, 100f);
-        statsA.SetValue(StatIds.ATTR_STRENGTH, 5L);
+        statsA.SetFixed(StatisticIds.HEALTH, 100f);
+        statsA.SetFixed(StatisticIds.HEALTH_MAX, 100f);
+        statsA.SetValue(StatisticIds.ATTR_STRENGTH, 5L);
         harness.ServerStore.AddOrUpdate(clientA.ServerEntity, statsA);
 
         var statsB = new StatisticsComponent();
-        statsB.SetFixed(StatIds.HEALTH, 80f);
-        statsB.SetFixed(StatIds.HEALTH_MAX, 100f);
-        statsB.SetValue(StatIds.ATTR_STRENGTH, 2L);
+        statsB.SetFixed(StatisticIds.HEALTH, 80f);
+        statsB.SetFixed(StatisticIds.HEALTH_MAX, 100f);
+        statsB.SetValue(StatisticIds.ATTR_STRENGTH, 2L);
         harness.ServerStore.AddOrUpdate(clientB.ServerEntity, statsB);
         harness.ClearAllDirty();
 
@@ -95,11 +96,11 @@ public sealed class StatisticsReplicationTests
         TickReconcileWhilePlaying(reconcileA, clientAStore);
 
         Assert.True(clientAStore.TryGet(localPlayerA, out StatisticsComponent clientStatsAfterJoin));
-        Assert.Equal(100f, clientStatsAfterJoin.GetFixed(StatIds.HEALTH));
-        Assert.Equal(5L, clientStatsAfterJoin.GetValue(StatIds.ATTR_STRENGTH));
+        Assert.Equal(100f, clientStatsAfterJoin.GetFixed(StatisticIds.HEALTH));
+        Assert.Equal(5L, clientStatsAfterJoin.GetValue(StatisticIds.ATTR_STRENGTH));
 
         //  3. Delta mutation on client A replicates only to client A, never to client B.
-        Assert.True(harness.ServerStore.SetStatisticFixed(clientA.ServerEntity, StatIds.HEALTH, 72.5f));
+        Assert.True(harness.ServerStore.SetStatisticFixed(clientA.ServerEntity, StatisticIds.HEALTH, 72.5f));
         harness.Replication.PublishStage(1f, harness.ServerStore);
 
         WorldSnapshot deltaA = await clientA.WaitForSnapshotAsync();
@@ -111,10 +112,10 @@ public sealed class StatisticsReplicationTests
         clientA.Inbound.Snapshots.Enqueue(new ClientInbound.InboundSnapshot(deltaA));
         TickReconcileWhilePlaying(reconcileA, clientAStore);
         Assert.True(clientAStore.TryGet(localPlayerA, out StatisticsComponent clientStatsAfterDelta));
-        Assert.Equal(72.5f, clientStatsAfterDelta.GetFixed(StatIds.HEALTH));
+        Assert.Equal(72.5f, clientStatsAfterDelta.GetFixed(StatisticIds.HEALTH));
 
         //  4. Change-gated idle write produces zero dirty flag and zero wire snapshots.
-        Assert.False(harness.ServerStore.SetStatisticFixed(clientA.ServerEntity, StatIds.HEALTH, 72.5f));
+        Assert.False(harness.ServerStore.SetStatisticFixed(clientA.ServerEntity, StatisticIds.HEALTH, 72.5f));
         Assert.False(harness.ServerStore.IsDirty<StatisticsComponent>(clientA.ServerEntity));
         harness.Replication.PublishStage(1f, harness.ServerStore);
         Assert.Empty(clientA.Inbound.Snapshots);

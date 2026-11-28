@@ -10,7 +10,7 @@ using Swordfish.Library.IO;
 using Swordfish.Library.Util;
 using WaywardBeyond.Data;
 using WaywardBeyond.Data.Buffs;
-using WaywardBeyond.Data.Components;
+using WaywardBeyond.Data.Statistics;
 using Xunit;
 
 namespace WaywardBeyond.Tests;
@@ -89,7 +89,7 @@ public sealed class BuffDatabaseTests
             Assert.Equal(BuffStackPolicy.Refresh, wellFed.StackPolicy);
             Assert.Equal(0.5f, wellFed.HealthPerSec);
             Assert.Equal(0.25f, wellFed.OxygenPerSec);
-            Assert.Equal(StatIds.BuffExpiresTick("wb:well_fed"), wellFed.ExpiryStatId);
+            Assert.Equal(StatisticIds.BuffExpiresTick("wb:well_fed"), wellFed.ExpiryStatId);
             Assert.Equal(2, wellFed.StatModifiers.Count);
             Assert.False(wellFed.StatModifiers is BuffStatModifier[]);
             Assert.Equal(new BuffStatModifier("wb:health_max", FlatDelta: 20f), wellFed.StatModifiers[0]);
@@ -194,9 +194,26 @@ public sealed class BuffDatabaseTests
                 duration_seconds = "forever"
 
                 [[buffs]]
+                id = "wb:duplicate_alias"
+                ID = "wb:duplicate_alias_other"
+                name = "buff.name.duplicate_alias"
+                duration_seconds = 10
+
+                [[buffs]]
                 id = "wb:valid"
                 name = "buff.name.duplicate"
                 duration_seconds = 99
+                """
+            );
+
+            File.WriteAllText(
+                Path.Combine(buffsDir, "mixed_flat_and_array.toml"),
+                """
+                id = "wb:flat_stray"
+                [[buffs]]
+                id = "wb:mixed_array_item"
+                name = "buff.name.mixed"
+                duration_seconds = 10
                 """
             );
 
@@ -216,6 +233,8 @@ public sealed class BuffDatabaseTests
             Assert.False(database.Get("wb:conflicting_regen").Success);
             Assert.False(database.Get("wb:both_regen_tables").Success);
             Assert.False(database.Get("wb:wrong_duration_type").Success);
+            Assert.False(database.Get("wb:duplicate_alias").Success);
+            Assert.False(database.Get("wb:mixed_array_item").Success);
             Assert.False(database.All is System.Collections.Generic.List<BuffDefinition>);
         }
         finally

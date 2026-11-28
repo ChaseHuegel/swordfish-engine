@@ -15,6 +15,7 @@ using WaywardBeyond.Config;
 using WaywardBeyond.Data;
 using WaywardBeyond.Data.Components;
 using WaywardBeyond.Data.Networking;
+using WaywardBeyond.Data.Statistics;
 using WaywardBeyond.Networking.Rpc;
 using WaywardBeyond.Voxels;
 
@@ -137,7 +138,7 @@ internal sealed class ClientJoinSystem : IEntitySystem
                 Inventory = character.Inventory,
                 ActiveInventorySlot = character.ActiveInventorySlot,
                 GameMode = character.GameMode,
-                Statistics = StatisticsComponentExtensions.WithCharacterAttributes(in character),
+                Statistics = StatisticsPersistence.WithCharacterAttributes(in character),
             },
         }, _timeout.Token);
     }

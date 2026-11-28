@@ -14,6 +14,7 @@ using WaywardBeyond.Config;
 using WaywardBeyond.Data;
 using WaywardBeyond.Data.Components;
 using WaywardBeyond.Data.Levels;
+using WaywardBeyond.Data.Statistics;
 using WaywardBeyond.Gameplay.Networking;
 using WaywardBeyond.Voxels;
 
@@ -408,7 +409,7 @@ public sealed class LevelSaveService : IDisposable
         Uuid uuid = store.GetUuid(entity);
         GameMode gameMode = store.TryGet(entity, out GameModeComponent mode) ? mode.Mode : GameMode.Adventure;
         Statistic[]? statistics = store.TryGet(entity, out StatisticsComponent stats)
-            ? StatisticsComponentExtensions.CapturePersistedServerStatistics(in stats, currentSimTick)
+            ? StatisticsPersistence.CaptureServerStatistics(stats.Entries, currentSimTick)
             : null;
         return new CharacterEntityData(
             uuid.ToValue(),

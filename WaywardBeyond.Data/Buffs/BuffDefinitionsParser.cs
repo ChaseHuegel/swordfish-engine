@@ -7,7 +7,7 @@ using Tomlet.Models;
 namespace WaywardBeyond.Data.Buffs;
 
 /// <summary>Parses buff TOML files supporting both <c>[[buffs]]</c> tables and flat single-buff documents.</summary>
-public sealed class BuffDefinitionsParser : IFileParser<BuffDefinitions>
+internal sealed class BuffDefinitionsParser : IFileParser<BuffDefinitions>
 {
     /// <inheritdoc/>
     public string[] SupportedExtensions { get; } = [".toml"];
@@ -20,32 +20,12 @@ public sealed class BuffDefinitionsParser : IFileParser<BuffDefinitions>
     {
         var result = new BuffDefinitions();
         TomlDocument document = new TomlParser().Parse(file.ReadString());
+        List<(TomlTable? Table, string? Error)> rows = TomlTableReader.ReadDocumentRows(document, "buffs");
 
-        if (TomlTableReader.TryFindValue(document, "buffs", out TomlValue? arrayValue) && arrayValue != null)
+        for (var i = 0; i < rows.Count; i++)
         {
-            if (arrayValue is not TomlArray array)
-            {
-                result.Entries.Add(new BuffEntry(default, "Field \"buffs\" must be an array of tables."));
-                return result;
-            }
-
-            for (var i = 0; i < array.Count; i++)
-            {
-                if (array[i] is not TomlTable rowTable)
-                {
-                    result.Entries.Add(new BuffEntry(default, $"Entry {i} in \"buffs\" must be a table."));
-                    continue;
-                }
-
-                result.Entries.Add(ParseEntry(rowTable));
-            }
-
-            return result;
-        }
-
-        if (document.Keys.Count > 0)
-        {
-            result.Entries.Add(ParseEntry(document));
+            (TomlTable? rowTable, string? rowError) = rows[i];
+            result.Entries.Add(rowTable != null ? ParseEntry(rowTable) : new BuffEntry(default, rowError));
         }
 
         return result;

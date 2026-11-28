@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using Swordfish.Library.IO;
 using Tomlet;
 using Tomlet.Models;
@@ -5,7 +6,7 @@ using Tomlet.Models;
 namespace WaywardBeyond.Data.HudBars;
 
 /// <summary>Parses HUD bar TOML files supporting both <c>[[hud_bars]]</c> tables and flat single-bar documents.</summary>
-public sealed class HudBarDefinitionsParser : IFileParser<HudBarDefinitions>
+internal sealed class HudBarDefinitionsParser : IFileParser<HudBarDefinitions>
 {
     /// <inheritdoc/>
     public string[] SupportedExtensions { get; } = [".toml"];
@@ -18,32 +19,12 @@ public sealed class HudBarDefinitionsParser : IFileParser<HudBarDefinitions>
     {
         var result = new HudBarDefinitions();
         TomlDocument document = new TomlParser().Parse(file.ReadString());
+        List<(TomlTable? Table, string? Error)> rows = TomlTableReader.ReadDocumentRows(document, "hud_bars");
 
-        if (TomlTableReader.TryFindValue(document, "hud_bars", out TomlValue? arrayValue) && arrayValue != null)
+        for (var i = 0; i < rows.Count; i++)
         {
-            if (arrayValue is not TomlArray array)
-            {
-                result.Entries.Add(new HudBarEntry(default, "Field \"hud_bars\" must be an array of tables."));
-                return result;
-            }
-
-            for (var i = 0; i < array.Count; i++)
-            {
-                if (array[i] is not TomlTable rowTable)
-                {
-                    result.Entries.Add(new HudBarEntry(default, $"Entry {i} in \"hud_bars\" must be a table."));
-                    continue;
-                }
-
-                result.Entries.Add(ParseEntry(rowTable));
-            }
-
-            return result;
-        }
-
-        if (document.Keys.Count > 0)
-        {
-            result.Entries.Add(ParseEntry(document));
+            (TomlTable? rowTable, string? rowError) = rows[i];
+            result.Entries.Add(rowTable != null ? ParseEntry(rowTable) : new HudBarEntry(default, rowError));
         }
 
         return result;
